@@ -1,0 +1,47 @@
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/eyazici90/obsctl/internal"
+	"github.com/urfave/cli/v2"
+)
+
+var metricsCmd = &cli.Command{
+	Name: "metrics",
+	Subcommands: []*cli.Command{
+		{
+			Name:   "export",
+			Usage:  `exports prom metrics to csv files`,
+			Action: actionMetricsExport,
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:  "output",
+					Value: "metrics.csv",
+				},
+			},
+		},
+	},
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "prom-addr",
+			Value: "https://demo.promlabs.com/",
+			// Required: true,
+		},
+	},
+}
+
+func actionMetricsExport(c *cli.Context) error {
+	cfg := actionSetup(c)
+	exp, err := internal.NewMetricsExporter(cfg.ExportConfig)
+	if err != nil {
+		return fmt.Errorf("new prom analyser: %w", err)
+	}
+	if err = exp.Export(c.Context); err != nil {
+		return fmt.Errorf("export: %w", err)
+	}
+
+	log.Printf("metrics export finished!")
+	return nil
+}

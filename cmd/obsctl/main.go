@@ -22,6 +22,7 @@ func newApp() *cli.App {
 		Description: "Observability CLI",
 		Commands: []*cli.Command{
 			rulesCmd,
+			metricsCmd,
 		},
 	}
 }
