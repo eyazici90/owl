@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/api"
 	promapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 )
 
@@ -49,7 +51,7 @@ func (re *RulesExporter) Export(ctx context.Context) error {
 		_ = f.Close()
 	}()
 
-	const batchSize, numCol = 100, 5
+	const batchSize, numCol = 100, 7
 	w := csv.NewWriter(f)
 	buf := make([]string, numCol)
 	if err = re.writeHeaders(w, buf); err != nil {
@@ -58,6 +60,7 @@ func (re *RulesExporter) Export(ctx context.Context) error {
 
 	var n uint16
 	for _, group := range rules.Groups {
+		buf[0] = group.Name
 		for _, rule := range group.Rules {
 			select {
 			case <-ctx.Done():
@@ -89,21 +92,29 @@ func (re *RulesExporter) Export(ctx context.Context) error {
 	return nil
 }
 
-func (re *RulesExporter) writeHeaders(w *csv.Writer, buf []string) error {
-	buf[0], buf[1], buf[2], buf[3], buf[4] = "type", "name", "query", "evalTime", "lastEval"
+func (*RulesExporter) writeHeaders(w *csv.Writer, buf []string) error {
+	buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6] = "group", "type", "name", "query", "labels", "evalTime", "lastEval"
 	return w.Write(buf)
 }
 
-func (re *RulesExporter) writeRecordingRule(w *csv.Writer, buf []string, r promapiv1.RecordingRule) error {
-	buf[0], buf[1], buf[2] = "record", r.Name, r.Query
-	buf[3], buf[4] = strconv.FormatFloat(r.EvaluationTime, 'g', -1, 64), r.LastEvaluation.String()
+func (*RulesExporter) writeRecordingRule(w *csv.Writer, buf []string, r promapiv1.RecordingRule) error {
+	buf[1], buf[2], buf[3] = "record", r.Name, r.Query
+	buf[4], buf[5], buf[6] = humanizeLabelSet(r.Labels), strconv.FormatFloat(r.EvaluationTime, 'g', -1, 64), r.LastEvaluation.String()
 	return w.Write(buf)
 }
 
-func (re *RulesExporter) writeAlertingRule(w *csv.Writer, buf []string, r promapiv1.AlertingRule) error {
-	buf[0], buf[1], buf[2] = "alert", r.Name, r.Query
-	buf[3], buf[4] = strconv.FormatFloat(r.EvaluationTime, 'g', -1, 64), r.LastEvaluation.String()
+func (*RulesExporter) writeAlertingRule(w *csv.Writer, buf []string, r promapiv1.AlertingRule) error {
+	buf[1], buf[2], buf[3] = "alert", r.Name, r.Query
+	buf[4], buf[5], buf[6] = humanizeLabelSet(r.Labels), strconv.FormatFloat(r.EvaluationTime, 'g', -1, 64), r.LastEvaluation.String()
 	return w.Write(buf)
+}
+
+func humanizeLabelSet(labels model.LabelSet) string {
+	arr := make([]string, 0, len(labels))
+	for name, val := range labels {
+		arr = append(arr, fmt.Sprintf("%s=%s", name, val))
+	}
+	return strings.Join(arr, ",")
 }
 
 type MetricsExporter struct {
