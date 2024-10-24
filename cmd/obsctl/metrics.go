@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/eyazici90/obsctl/internal"
 	"github.com/urfave/cli/v2"
@@ -42,6 +42,6 @@ func actionMetricsExport(c *cli.Context) error {
 		return fmt.Errorf("export: %w", err)
 	}
 
-	log.Printf("metrics export finished!")
+	slog.Info("Metrics export finished!")
 	return nil
 }

@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/eyazici90/obsctl/internal"
 	"github.com/urfave/cli/v2"
@@ -76,7 +76,7 @@ func actionRulesExport(c *cli.Context) error {
 		return fmt.Errorf("export: %w", err)
 	}
 
-	log.Printf("rules export finished!")
+	slog.Info("Rules export finished!")
 	return nil
 }
 
@@ -87,9 +87,13 @@ func actionRulesAnalyse(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("rules missing: %w", err)
 	}
-	log.Printf("Found: %d", len(res))
+	slog.Info("Found",
+		slog.Int("total", len(res)),
+	)
 	for _, rule := range res {
-		log.Printf("%+v", rule)
+		slog.Info("Found",
+			slog.String("item", fmt.Sprintf("%+v", rule)),
+		)
 	}
 	return nil
 }
@@ -101,9 +105,13 @@ func actionRulesSlowest(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("rules missing: %w", err)
 	}
-	log.Printf("Found: %d", len(res))
+	slog.Info("Found",
+		slog.Int("total", len(res)),
+	)
 	for _, slow := range res {
-		log.Printf("%+v", slow)
+		slog.Info("Found",
+			slog.String("item", fmt.Sprintf("%+v", slow)),
+		)
 	}
 	return nil
 }

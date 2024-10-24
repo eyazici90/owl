@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/eyazici90/obsctl/internal"
@@ -11,7 +11,7 @@ import (
 func main() {
 	app := newApp()
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		slog.Error("App run completed with error(s)", slog.Any("err", err))
 	}
 }
 
@@ -24,6 +24,11 @@ func newApp() *cli.App {
 			rulesCmd,
 			metricsCmd,
 		},
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name: "log-level",
+			},
+		},
 	}
 }
 
@@ -34,6 +39,10 @@ type Config struct {
 }
 
 func actionSetup(c *cli.Context) *Config {
+	level := c.String("log-level")
+	l := internal.ParseLevel(level)
+	internal.SetUpSlog(os.Stderr, l)
+
 	addr := c.String("prom-addr")
 	limit := c.Uint64("limit")
 	out := c.String("output")
