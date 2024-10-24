@@ -28,10 +28,10 @@ type PromRulesAnalyser struct {
 	cfg *AnalyserConfig
 }
 
-func NewPromRulesAnalyser(cfg *AnalyserConfig) (*PromRulesAnalyser, error) {
+func NewPromRulesAnalyser(cfg *AnalyserConfig) *PromRulesAnalyser {
 	return &PromRulesAnalyser{
 		cfg: cfg,
-	}, nil
+	}
 }
 
 func (pra *PromRulesAnalyser) FindRulesMissingMetrics(ctx context.Context) ([]RuleMissingMetrics, error) {
@@ -97,7 +97,7 @@ EXIT:
 				return nil, fmt.Errorf("read rule: %w", err)
 			}
 
-			typ, name, query, _, _ := rec[0], rec[1], rec[2], rec[3], rec[4]
+			typ, name, query := rec[0], rec[1], rec[2]
 			ms := parsePromQuery(query)
 			missing, found := missingValues(metrics, ms...)
 			if !found {

@@ -68,11 +68,22 @@ func actionRulesExport(c *cli.Context) error {
 
 func actionRulesAnalyse(c *cli.Context) error {
 	cfg := actionSetup(c)
-	analyser, err := internal.NewPromRulesAnalyser(cfg.AnalyserConfig)
+	pra := internal.NewPromRulesAnalyser(cfg.AnalyserConfig)
+	res, err := pra.FindRulesMissingMetrics(c.Context)
 	if err != nil {
-		return fmt.Errorf("new prom analyser: %w", err)
+		return fmt.Errorf("rules missing: %w", err)
 	}
-	res, err := analyser.FindRulesMissingMetrics(c.Context)
+	log.Printf("Found: %d", len(res))
+	for _, r := range res {
+		log.Printf("type: %s, rule: %s, missing_metrics: [%s]", r.RuleType, r.Rule, strings.Join(r.Metrics, ","))
+	}
+	return nil
+}
+
+func actionRulesSlowest(c *cli.Context) error {
+	cfg := actionSetup(c)
+	prs := internal.NewPromRulesSlowest(cfg.SlowestConfig)
+	res, err := prs.Get(c.Context)
 	if err != nil {
 		return fmt.Errorf("rule missing: %w", err)
 	}
