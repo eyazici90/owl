@@ -36,14 +36,16 @@ func actionSetup(c *cli.Context) *Config {
 	addr := c.String("prom-addr")
 	limit := c.Uint64("limit")
 	out := c.String("output")
+	rfile, mfile := c.String("rules-file"), c.String("metrics-file")
 	return &Config{
 		ExportConfig: &internal.ExportConfig{
 			Addr:   addr,
 			Output: out,
 		},
 		AnalyserConfig: &internal.AnalyserConfig{
-			Addr:  addr,
-			Limit: limit,
+			RulesFile:   rfile,
+			MetricsFile: mfile,
+			Limit:       limit,
 		},
 	}
 }

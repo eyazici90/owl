@@ -28,6 +28,14 @@ var rulesCmd = &cli.Command{
 			Usage:  `Scans prom rules to find rules that are missing metrics`,
 			Action: actionRulesAnalyse,
 			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:  "rules-file",
+					Value: "rules.csv",
+				},
+				&cli.StringFlag{
+					Name:  "metrics-file",
+					Value: "metrics.csv",
+				},
 				&cli.Uint64Flag{
 					Name:  "limit",
 					Value: 10,

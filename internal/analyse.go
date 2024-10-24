@@ -2,20 +2,20 @@ package internal
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
+	"io"
 	"log"
+	"os"
 	"regexp"
-	"time"
 
-	"github.com/prometheus/client_golang/api"
-	promapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
 type AnalyserConfig struct {
-	Addr  string
-	Limit uint64
+	RulesFile, MetricsFile string
+	Limit                  uint64
 }
 
 type RuleMissingMetrics struct {
@@ -25,71 +25,89 @@ type RuleMissingMetrics struct {
 }
 
 type PromRulesAnalyser struct {
-	cfg   *AnalyserConfig
-	v1api promapiv1.API
+	cfg *AnalyserConfig
 }
 
 func NewPromRulesAnalyser(cfg *AnalyserConfig) (*PromRulesAnalyser, error) {
-	cl, err := api.NewClient(api.Config{
-		Address: cfg.Addr,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("new prom client: %w", err)
-	}
 	return &PromRulesAnalyser{
-		cfg:   cfg,
-		v1api: promapiv1.NewAPI(cl),
+		cfg: cfg,
 	}, nil
 }
 
 func (pra *PromRulesAnalyser) FindRulesMissingMetrics(ctx context.Context) ([]RuleMissingMetrics, error) {
-	var t time.Time
-	metrics, _, err := pra.v1api.LabelValues(ctx, labels.MetricName, nil, t, t)
+	mf, err := os.Open(pra.cfg.MetricsFile)
 	if err != nil {
-		return nil, fmt.Errorf("get metrics: %w", err)
+		return nil, fmt.Errorf("open metrics: %w", err)
+	}
+	defer func() {
+		_ = mf.Close()
+	}()
+
+	metrics := make(map[string]struct{})
+	mr := csv.NewReader(mf)
+	if _, err = mr.Read(); err != nil { // reading header
+		return nil, fmt.Errorf("read header: %w", err)
 	}
 
-	metricSearch := make(map[string]struct{}, len(metrics))
-	for _, metric := range metrics {
-		metricSearch[string(metric)] = struct{}{}
+OUT:
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			rec, err := mr.Read()
+			if err == io.EOF {
+				break OUT
+			}
+			if err != nil {
+				return nil, fmt.Errorf("read metric: %w", err)
+			}
+			metrics[rec[0]] = struct{}{}
+		}
 	}
-	rules, err := pra.v1api.Rules(ctx)
+
+	rf, err := os.Open(pra.cfg.RulesFile)
 	if err != nil {
-		return nil, fmt.Errorf("get rules: %w", err)
+		return nil, fmt.Errorf("open rules: %w", err)
+	}
+	defer func() {
+		_ = rf.Close()
+	}()
+
+	rr := csv.NewReader(rf)
+	if _, err = rr.Read(); err != nil { // reading header
+		return nil, fmt.Errorf("read header: %w", err)
 	}
 
 	var result []RuleMissingMetrics
-OUT:
-	for _, group := range rules.Groups {
-		for _, rule := range group.Rules {
+EXIT:
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
 			if pra.isOffLimit(len(result)) {
-				break OUT
+				break EXIT
 			}
-			switch v := rule.(type) {
-			case promapiv1.RecordingRule:
-				ms := parsePromQuery(v.Query)
-				missing, found := missingValues(metricSearch, ms...)
-				if !found {
-					continue
-				}
-				result = append(result, RuleMissingMetrics{
-					Rule:     v.Name,
-					RuleType: "recording",
-					Metrics:  missing,
-				})
-			case promapiv1.AlertingRule:
-				ms := parsePromQuery(v.Query)
-				missing, found := missingValues(metricSearch, ms...)
-				if !found {
-					continue
-				}
-				result = append(result, RuleMissingMetrics{
-					Rule:     v.Name,
-					RuleType: "alerting",
-					Metrics:  missing,
-				})
-			default:
+			rec, err := rr.Read()
+			if err == io.EOF {
+				break EXIT
 			}
+			if err != nil {
+				return nil, fmt.Errorf("read rule: %w", err)
+			}
+
+			typ, name, query, _, _ := rec[0], rec[1], rec[2], rec[3], rec[4]
+			ms := parsePromQuery(query)
+			missing, found := missingValues(metrics, ms...)
+			if !found {
+				continue
+			}
+			result = append(result, RuleMissingMetrics{
+				Rule:     name,
+				RuleType: typ,
+				Metrics:  missing,
+			})
 		}
 	}
 	return result, nil
