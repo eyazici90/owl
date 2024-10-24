@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/eyazici90/obsctl/internal"
 	"log"
 	"os"
 
@@ -21,6 +22,27 @@ func newApp() *cli.App {
 		Description: "Observability CLI",
 		Commands: []*cli.Command{
 			rulesCmd,
+		},
+	}
+}
+
+type Config struct {
+	*internal.RuleExportConfig
+	*internal.RuleAnalyserConfig
+}
+
+func actionSetup(c *cli.Context) *Config {
+	addr := c.String("prom-addr")
+	limit := c.Uint64("limit")
+	out := c.String("output")
+	return &Config{
+		RuleExportConfig: &internal.RuleExportConfig{
+			Addr:   addr,
+			Output: out,
+		},
+		RuleAnalyserConfig: &internal.RuleAnalyserConfig{
+			Addr:  addr,
+			Limit: limit,
 		},
 	}
 }

@@ -13,6 +13,17 @@ var rulesCmd = &cli.Command{
 	Name: "rules",
 	Subcommands: []*cli.Command{
 		{
+			Name:   "export",
+			Usage:  `exports prom rules to csv files`,
+			Action: actionExport,
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:     "output",
+					Required: true,
+				},
+			},
+		},
+		{
 			Name:   "analyse",
 			Usage:  `Scans prom rules to find rules that are missing metrics`,
 			Action: actionAnalyse,
@@ -26,20 +37,32 @@ var rulesCmd = &cli.Command{
 	},
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:     "prom-addr",
-			Value:    "https://demo.promlabs.com/",
-			Required: true,
+			Name:  "prom-addr",
+			Value: "https://demo.promlabs.com/",
+			// Required: true,
 		},
 	},
 }
 
-func actionAnalyse(c *cli.Context) error {
+func actionExport(c *cli.Context) error {
 	cfg := actionSetup(c)
-	analyser, err := internal.NewPromRuleAnalyser(cfg)
+	exporter, err := internal.NewRuleExporter(cfg.RuleExportConfig)
 	if err != nil {
 		return fmt.Errorf("new prom analyser: %w", err)
 	}
+	if err = exporter.Export(c.Context); err != nil {
+		return fmt.Errorf("rule missing: %w", err)
+	}
 
+	return nil
+}
+
+func actionAnalyse(c *cli.Context) error {
+	cfg := actionSetup(c)
+	analyser, err := internal.NewPromRuleAnalyser(cfg.RuleAnalyserConfig)
+	if err != nil {
+		return fmt.Errorf("new prom analyser: %w", err)
+	}
 	res, err := analyser.FindRulesMissingMetrics(c.Context)
 	if err != nil {
 		return fmt.Errorf("rule missing: %w", err)
@@ -48,9 +71,4 @@ func actionAnalyse(c *cli.Context) error {
 		log.Printf("type: %s, rule: %s, missing_metrics: [%s]", v.RuleType, v.Rule, strings.Join(v.Metrics, ","))
 	}
 	return nil
-}
-
-func actionSetup(c *cli.Context) *internal.Config {
-	addr := c.String("prom-addr")
-	return &internal.Config{Addr: addr}
 }

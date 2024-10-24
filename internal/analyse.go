@@ -42,12 +42,6 @@ func NewPromRuleAnalyser(cfg *RuleAnalyserConfig) (*PromRuleAnalyser, error) {
 	}, nil
 }
 
-type RuleMissingMetrics struct {
-	Rule     string
-	RuleType string
-	Metrics  []string
-}
-
 func (pra *PromRuleAnalyser) FindRulesMissingMetrics(ctx context.Context) ([]RuleMissingMetrics, error) {
 	var t time.Time
 	metrics, _, err := pra.v1api.LabelValues(ctx, labels.MetricName, nil, t, t)
