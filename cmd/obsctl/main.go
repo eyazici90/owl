@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/eyazici90/obsctl/internal"
 	"log"
 	"os"
 
+	"github.com/eyazici90/obsctl/internal"
 	"github.com/urfave/cli/v2"
 )
 
@@ -30,6 +30,7 @@ func newApp() *cli.App {
 type Config struct {
 	*internal.ExportConfig
 	*internal.AnalyserConfig
+	*internal.SlowestConfig
 }
 
 func actionSetup(c *cli.Context) *Config {
@@ -46,6 +47,10 @@ func actionSetup(c *cli.Context) *Config {
 			RulesFile:   rfile,
 			MetricsFile: mfile,
 			Limit:       limit,
+		},
+		SlowestConfig: &internal.SlowestConfig{
+			RulesFile: rfile,
+			Limit:     limit,
 		},
 	}
 }

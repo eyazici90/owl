@@ -42,6 +42,21 @@ var rulesCmd = &cli.Command{
 				},
 			},
 		},
+		{
+			Name:   "slowest",
+			Action: actionRulesSlowest,
+			Usage:  `Scans prom rules to find slowest based on evaluation duration`,
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:  "rules-file",
+					Value: "rules.csv",
+				},
+				&cli.Uint64Flag{
+					Name:  "limit",
+					Value: 10,
+				},
+			},
+		},
 	},
 	Flags: []cli.Flag{
 		&cli.StringFlag{
@@ -85,10 +100,11 @@ func actionRulesSlowest(c *cli.Context) error {
 	prs := internal.NewPromRulesSlowest(cfg.SlowestConfig)
 	res, err := prs.Get(c.Context)
 	if err != nil {
-		return fmt.Errorf("rule missing: %w", err)
+		return fmt.Errorf("rules missing: %w", err)
 	}
-	for _, v := range res {
-		log.Printf("type: %s, rule: %s, missing_metrics: [%s]", v.RuleType, v.Rule, strings.Join(v.Metrics, ","))
+	log.Printf("Found: %d", len(res))
+	for _, slow := range res {
+		log.Printf("%+v", slow)
 	}
 	return nil
 }
