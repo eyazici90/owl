@@ -18,8 +18,8 @@ var rulesCmd = &cli.Command{
 			Action: actionExport,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
-					Name:     "output",
-					Required: true,
+					Name:  "output",
+					Value: "rules.csv",
 				},
 			},
 		},
@@ -51,9 +51,10 @@ func actionExport(c *cli.Context) error {
 		return fmt.Errorf("new prom analyser: %w", err)
 	}
 	if err = exporter.Export(c.Context); err != nil {
-		return fmt.Errorf("rule missing: %w", err)
+		return fmt.Errorf("export: %w", err)
 	}
 
+	log.Printf("export finished!")
 	return nil
 }
 
