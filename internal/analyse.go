@@ -5,12 +5,8 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"regexp"
-
-	"github.com/prometheus/prometheus/model/labels"
-	"github.com/prometheus/prometheus/promql/parser"
 )
 
 type AnalyserConfig struct {
@@ -19,9 +15,8 @@ type AnalyserConfig struct {
 }
 
 type RuleMissingMetrics struct {
-	Rule     string
-	RuleType string
-	Metrics  []string
+	Group, Rule, RuleType string
+	Metrics               []MetricName
 }
 
 type PromRulesAnalyser struct {
@@ -43,7 +38,7 @@ func (pra *PromRulesAnalyser) FindRulesMissingMetrics(ctx context.Context) ([]Ru
 		_ = mf.Close()
 	}()
 
-	metrics := make(map[string]struct{})
+	metrics := make(map[MetricName]struct{})
 	mr := csv.NewReader(mf)
 	if _, err = mr.Read(); err != nil { // reading header
 		return nil, fmt.Errorf("read header: %w", err)
@@ -62,7 +57,7 @@ OUT:
 			if err != nil {
 				return nil, fmt.Errorf("read metric: %w", err)
 			}
-			metrics[rec[0]] = struct{}{}
+			metrics[MetricName(rec[0])] = struct{}{}
 		}
 	}
 
@@ -97,13 +92,17 @@ EXIT:
 				return nil, fmt.Errorf("read rule: %w", err)
 			}
 
-			typ, name, query := rec[0], rec[1], rec[2]
-			ms := parsePromQuery(query)
+			grp, typ, name, query := rec[0], rec[1], rec[2], rec[3]
+			ms, err := parsePromQuery(query)
+			if err != nil {
+				return nil, fmt.Errorf("parse prom expr: %w", err)
+			}
 			missing, found := missingValues(metrics, ms...)
 			if !found {
 				continue
 			}
 			result = append(result, RuleMissingMetrics{
+				Group:    grp,
 				Rule:     name,
 				RuleType: typ,
 				Metrics:  missing,
@@ -119,34 +118,8 @@ func (pra *PromRulesAnalyser) isOffLimit(n int) bool {
 
 var validMetricNameExp = regexp.MustCompile(`^[a-zA-Z_:][a-zA-Z0-9_:]*$`)
 
-func parsePromQuery(query string) []string {
-	expr, err := parser.ParseExpr(query)
-	if err != nil {
-		log.Printf("%v", err)
-		return nil
-	}
-
-	var res []string
-	parser.Inspect(expr, func(node parser.Node, _ []parser.Node) error {
-		if n, ok := node.(*parser.VectorSelector); ok {
-			if n.Name != "" {
-				res = append(res, n.Name)
-				return nil
-			}
-			for _, m := range n.LabelMatchers {
-				if m.Name == labels.MetricName && validMetricNameExp.MatchString(m.Value) {
-					res = append(res, n.Name)
-					return nil
-				}
-			}
-		}
-		return nil
-	})
-	return res
-}
-
-func missingValues(search map[string]struct{}, vals ...string) ([]string, bool) {
-	var res []string
+func missingValues[T comparable](search map[T]struct{}, vals ...T) ([]T, bool) {
+	var res []T
 	for _, v := range vals {
 		if _, ok := search[v]; !ok {
 			res = append(res, v)

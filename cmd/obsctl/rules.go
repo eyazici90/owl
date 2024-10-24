@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/eyazici90/obsctl/internal"
 	"github.com/urfave/cli/v2"
@@ -89,8 +88,8 @@ func actionRulesAnalyse(c *cli.Context) error {
 		return fmt.Errorf("rules missing: %w", err)
 	}
 	log.Printf("Found: %d", len(res))
-	for _, r := range res {
-		log.Printf("type: %s, rule: %s, missing_metrics: [%s]", r.RuleType, r.Rule, strings.Join(r.Metrics, ","))
+	for _, rule := range res {
+		log.Printf("%+v", rule)
 	}
 	return nil
 }
