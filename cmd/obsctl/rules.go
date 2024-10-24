@@ -16,6 +16,12 @@ var rulesCmd = &cli.Command{
 			Name:   "analyse",
 			Usage:  `Scans prom rules to find rules that are missing metrics`,
 			Action: actionAnalyse,
+			Flags: []cli.Flag{
+				&cli.Uint64Flag{
+					Name:  "limit",
+					Value: 10,
+				},
+			},
 		},
 	},
 	Flags: []cli.Flag{

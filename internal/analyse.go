@@ -13,15 +13,23 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
-type Config struct {
-	Addr string
+type RuleAnalyserConfig struct {
+	Addr  string
+	Limit uint64
+}
+
+type RuleMissingMetrics struct {
+	Rule     string
+	RuleType string
+	Metrics  []string
 }
 
 type PromRuleAnalyser struct {
+	cfg   *RuleAnalyserConfig
 	v1api promapiv1.API
 }
 
-func NewPromRuleAnalyser(cfg *Config) (*PromRuleAnalyser, error) {
+func NewPromRuleAnalyser(cfg *RuleAnalyserConfig) (*PromRuleAnalyser, error) {
 	cl, err := api.NewClient(api.Config{
 		Address: cfg.Addr,
 	})
@@ -29,6 +37,7 @@ func NewPromRuleAnalyser(cfg *Config) (*PromRuleAnalyser, error) {
 		return nil, fmt.Errorf("new prom client: %w", err)
 	}
 	return &PromRuleAnalyser{
+		cfg:   cfg,
 		v1api: promapiv1.NewAPI(cl),
 	}, nil
 }
@@ -56,11 +65,15 @@ func (pra *PromRuleAnalyser) FindRulesMissingMetrics(ctx context.Context) ([]Rul
 	}
 
 	var result []RuleMissingMetrics
+OUT:
 	for _, group := range rules.Groups {
 		for _, rule := range group.Rules {
+			if pra.isOffLimit(len(result)) {
+				break OUT
+			}
 			switch v := rule.(type) {
 			case promapiv1.RecordingRule:
-				ms := parseQuery(v.Query)
+				ms := parsePromQuery(v.Query)
 				missing, found := missingValues(metricSearch, ms...)
 				if !found {
 					continue
@@ -71,7 +84,7 @@ func (pra *PromRuleAnalyser) FindRulesMissingMetrics(ctx context.Context) ([]Rul
 					Metrics:  missing,
 				})
 			case promapiv1.AlertingRule:
-				ms := parseQuery(v.Query)
+				ms := parsePromQuery(v.Query)
 				missing, found := missingValues(metricSearch, ms...)
 				if !found {
 					continue
@@ -88,9 +101,13 @@ func (pra *PromRuleAnalyser) FindRulesMissingMetrics(ctx context.Context) ([]Rul
 	return result, nil
 }
 
+func (pra *PromRuleAnalyser) isOffLimit(n int) bool {
+	return uint64(n) > pra.cfg.Limit
+}
+
 var validMetricNameExp = regexp.MustCompile(`^[a-zA-Z_:][a-zA-Z0-9_:]*$`)
 
-func parseQuery(query string) []string {
+func parsePromQuery(query string) []string {
 	expr, err := parser.ParseExpr(query)
 	if err != nil {
 		log.Printf("%v", err)
