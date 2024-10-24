@@ -13,7 +13,7 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
-type RuleAnalyserConfig struct {
+type AnalyserConfig struct {
 	Addr  string
 	Limit uint64
 }
@@ -24,25 +24,25 @@ type RuleMissingMetrics struct {
 	Metrics  []string
 }
 
-type PromRuleAnalyser struct {
-	cfg   *RuleAnalyserConfig
+type PromRulesAnalyser struct {
+	cfg   *AnalyserConfig
 	v1api promapiv1.API
 }
 
-func NewPromRuleAnalyser(cfg *RuleAnalyserConfig) (*PromRuleAnalyser, error) {
+func NewPromRulesAnalyser(cfg *AnalyserConfig) (*PromRulesAnalyser, error) {
 	cl, err := api.NewClient(api.Config{
 		Address: cfg.Addr,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("new prom client: %w", err)
 	}
-	return &PromRuleAnalyser{
+	return &PromRulesAnalyser{
 		cfg:   cfg,
 		v1api: promapiv1.NewAPI(cl),
 	}, nil
 }
 
-func (pra *PromRuleAnalyser) FindRulesMissingMetrics(ctx context.Context) ([]RuleMissingMetrics, error) {
+func (pra *PromRulesAnalyser) FindRulesMissingMetrics(ctx context.Context) ([]RuleMissingMetrics, error) {
 	var t time.Time
 	metrics, _, err := pra.v1api.LabelValues(ctx, labels.MetricName, nil, t, t)
 	if err != nil {
@@ -95,7 +95,7 @@ OUT:
 	return result, nil
 }
 
-func (pra *PromRuleAnalyser) isOffLimit(n int) bool {
+func (pra *PromRulesAnalyser) isOffLimit(n int) bool {
 	return uint64(n) > pra.cfg.Limit
 }
 

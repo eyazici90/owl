@@ -11,30 +11,30 @@ import (
 	promapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 )
 
-type RuleExportConfig struct {
+type ExportConfig struct {
 	Addr   string
 	Output string
 }
 
-type RuleExporter struct {
-	cfg   *RuleExportConfig
+type RulesExporter struct {
+	cfg   *ExportConfig
 	v1api promapiv1.API
 }
 
-func NewRuleExporter(cfg *RuleExportConfig) (*RuleExporter, error) {
+func NewRulesExporter(cfg *ExportConfig) (*RulesExporter, error) {
 	cl, err := api.NewClient(api.Config{
 		Address: cfg.Addr,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("new prom client: %w", err)
 	}
-	return &RuleExporter{
+	return &RulesExporter{
 		cfg:   cfg,
 		v1api: promapiv1.NewAPI(cl),
 	}, nil
 }
 
-func (re *RuleExporter) Export(ctx context.Context) error {
+func (re *RulesExporter) Export(ctx context.Context) error {
 	rules, err := re.v1api.Rules(ctx)
 	if err != nil {
 		return fmt.Errorf("get rules: %w", err)
@@ -84,18 +84,18 @@ func (re *RuleExporter) Export(ctx context.Context) error {
 	return nil
 }
 
-func (re *RuleExporter) writeHeaders(w *csv.Writer, buf []string) error {
+func (re *RulesExporter) writeHeaders(w *csv.Writer, buf []string) error {
 	buf[0], buf[1], buf[2], buf[3], buf[4] = "type", "name", "query", "evalTime", "lastEval"
 	return w.Write(buf)
 }
 
-func (re *RuleExporter) writeRecordingRule(w *csv.Writer, buf []string, r promapiv1.RecordingRule) error {
+func (re *RulesExporter) writeRecordingRule(w *csv.Writer, buf []string, r promapiv1.RecordingRule) error {
 	buf[0], buf[1], buf[2] = "record", r.Name, r.Query
 	buf[3], buf[4] = strconv.FormatFloat(r.EvaluationTime, 'g', -1, 64), r.LastEvaluation.String()
 	return w.Write(buf)
 }
 
-func (re *RuleExporter) writeAlertingRule(w *csv.Writer, buf []string, r promapiv1.AlertingRule) error {
+func (re *RulesExporter) writeAlertingRule(w *csv.Writer, buf []string, r promapiv1.AlertingRule) error {
 	buf[0], buf[1], buf[2] = "alert", r.Name, r.Query
 	buf[3], buf[4] = strconv.FormatFloat(r.EvaluationTime, 'g', -1, 64), r.LastEvaluation.String()
 	return w.Write(buf)

@@ -27,8 +27,8 @@ func newApp() *cli.App {
 }
 
 type Config struct {
-	*internal.RuleExportConfig
-	*internal.RuleAnalyserConfig
+	*internal.ExportConfig
+	*internal.AnalyserConfig
 }
 
 func actionSetup(c *cli.Context) *Config {
@@ -36,11 +36,11 @@ func actionSetup(c *cli.Context) *Config {
 	limit := c.Uint64("limit")
 	out := c.String("output")
 	return &Config{
-		RuleExportConfig: &internal.RuleExportConfig{
+		ExportConfig: &internal.ExportConfig{
 			Addr:   addr,
 			Output: out,
 		},
-		RuleAnalyserConfig: &internal.RuleAnalyserConfig{
+		AnalyserConfig: &internal.AnalyserConfig{
 			Addr:  addr,
 			Limit: limit,
 		},

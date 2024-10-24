@@ -15,7 +15,7 @@ var rulesCmd = &cli.Command{
 		{
 			Name:   "export",
 			Usage:  `exports prom rules to csv files`,
-			Action: actionExport,
+			Action: actionRulesExport,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:  "output",
@@ -26,7 +26,7 @@ var rulesCmd = &cli.Command{
 		{
 			Name:   "analyse",
 			Usage:  `Scans prom rules to find rules that are missing metrics`,
-			Action: actionAnalyse,
+			Action: actionRulesAnalyse,
 			Flags: []cli.Flag{
 				&cli.Uint64Flag{
 					Name:  "limit",
@@ -44,23 +44,23 @@ var rulesCmd = &cli.Command{
 	},
 }
 
-func actionExport(c *cli.Context) error {
+func actionRulesExport(c *cli.Context) error {
 	cfg := actionSetup(c)
-	exporter, err := internal.NewRuleExporter(cfg.RuleExportConfig)
+	exp, err := internal.NewRulesExporter(cfg.ExportConfig)
 	if err != nil {
 		return fmt.Errorf("new prom analyser: %w", err)
 	}
-	if err = exporter.Export(c.Context); err != nil {
+	if err = exp.Export(c.Context); err != nil {
 		return fmt.Errorf("export: %w", err)
 	}
 
-	log.Printf("export finished!")
+	log.Printf("rules export finished!")
 	return nil
 }
 
-func actionAnalyse(c *cli.Context) error {
+func actionRulesAnalyse(c *cli.Context) error {
 	cfg := actionSetup(c)
-	analyser, err := internal.NewPromRuleAnalyser(cfg.RuleAnalyserConfig)
+	analyser, err := internal.NewPromRulesAnalyser(cfg.AnalyserConfig)
 	if err != nil {
 		return fmt.Errorf("new prom analyser: %w", err)
 	}
