@@ -114,7 +114,7 @@ EXIT:
 }
 
 func (pra *PromRulesAnalyser) isOffLimit(n int) bool {
-	return uint64(n) > pra.cfg.Limit
+	return uint64(n) >= pra.cfg.Limit
 }
 
 var validMetricNameExp = regexp.MustCompile(`^[a-zA-Z_:][a-zA-Z0-9_:]*$`)
