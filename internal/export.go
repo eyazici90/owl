@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/prometheus/client_golang/api"
 	promapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
@@ -26,15 +25,9 @@ type RulesExporter struct {
 }
 
 func NewRulesExporter(cfg *ExportConfig) (*RulesExporter, error) {
-	cl, err := api.NewClient(api.Config{
-		Address: cfg.Addr,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("new prom client: %w", err)
-	}
 	return &RulesExporter{
 		cfg:   cfg,
-		v1api: promapiv1.NewAPI(cl),
+		v1api: mustNewPromAPIV1(cfg.Addr),
 	}, nil
 }
 
@@ -123,15 +116,9 @@ type MetricsExporter struct {
 }
 
 func NewMetricsExporter(cfg *ExportConfig) (*MetricsExporter, error) {
-	cl, err := api.NewClient(api.Config{
-		Address: cfg.Addr,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("new prom client: %w", err)
-	}
 	return &MetricsExporter{
 		cfg:   cfg,
-		v1api: promapiv1.NewAPI(cl),
+		v1api: mustNewPromAPIV1(cfg.Addr),
 	}, nil
 }
 
