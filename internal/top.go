@@ -8,14 +8,20 @@ import (
 )
 
 type TopListerConfig struct {
-	DashboardFile string
-	Limit         uint64
+	DashboardsFile string
+	Limit          uint64
 }
 
-type MetricsUsageInBoard struct {
-	Metric MetricName
-	Used   uint32
-}
+type (
+	TopMetricsResult struct {
+		Usages    []MetricUsageInBoard
+		ParseErrs []error
+	}
+	MetricUsageInBoard struct {
+		Metric MetricName
+		Used   uint32
+	}
+)
 
 type TopMetricsLister struct {
 	cfg *TopListerConfig
@@ -25,8 +31,8 @@ func NewTopMetricsLister(cfg *TopListerConfig) *TopMetricsLister {
 	return &TopMetricsLister{cfg: cfg}
 }
 
-func (tl *TopMetricsLister) List(ctx context.Context) ([]MetricsUsageInBoard, error) {
-	f, err := os.Open(tl.cfg.DashboardFile)
+func (tl *TopMetricsLister) List(ctx context.Context) (*TopMetricsResult, error) {
+	f, err := os.Open(tl.cfg.DashboardsFile)
 	if err != nil {
 		return nil, fmt.Errorf("open dashboards: %w", err)
 	}

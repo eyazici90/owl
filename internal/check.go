@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 )
 
 type CheckerConfig struct {
@@ -117,8 +116,6 @@ EXIT:
 func (prc *PromRulesChecker) isOffLimit(n int) bool {
 	return uint64(n) >= prc.cfg.Limit
 }
-
-var validMetricNameExp = regexp.MustCompile(`^[a-zA-Z_:][a-zA-Z0-9_:]*$`)
 
 func missingValues[T comparable](search map[T]struct{}, vals ...T) ([]T, bool) {
 	var res []T

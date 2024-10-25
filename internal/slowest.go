@@ -16,10 +16,16 @@ type SlowestConfig struct {
 	Limit     uint64
 }
 
-type SlowRule struct {
-	Group, Typ, Name, Query, Labels string
-	EvalTime                        time.Duration
-}
+type (
+	SlowestRulesResult struct {
+		Rules     []SlowRule
+		ParseErrs []error
+	}
+	SlowRule struct {
+		Rule     Rule
+		EvalTime time.Duration
+	}
+)
 
 type PromRulesSlowest struct {
 	cfg *SlowestConfig
@@ -29,7 +35,7 @@ func NewPromRulesSlowest(cfg *SlowestConfig) *PromRulesSlowest {
 	return &PromRulesSlowest{cfg: cfg}
 }
 
-func (prs *PromRulesSlowest) Get(ctx context.Context) ([]SlowRule, error) {
+func (prs *PromRulesSlowest) Get(ctx context.Context) (*SlowestRulesResult, error) {
 	f, err := os.Open(prs.cfg.RulesFile)
 	if err != nil {
 		return nil, fmt.Errorf("open rules: %w", err)
@@ -43,11 +49,11 @@ func (prs *PromRulesSlowest) Get(ctx context.Context) ([]SlowRule, error) {
 		return nil, fmt.Errorf("read header: %w", err)
 	}
 
-	var rules []struct {
-		grp, typ, name, query, labels string
-		evalTime                      float64
-	}
-EXIT:
+	var (
+		rules      []Rule
+		silentErrs []error
+	)
+OUT:
 	for {
 		select {
 		case <-ctx.Done():
@@ -55,43 +61,40 @@ EXIT:
 		default:
 			rec, err := r.Read()
 			if err == io.EOF {
-				break EXIT
+				break OUT
 			}
 			if err != nil {
-				return nil, fmt.Errorf("read rule: %w", err)
+				silentErrs = append(silentErrs, fmt.Errorf("read rule: %w", err))
+				continue
 			}
 			dur, err := strconv.ParseFloat(rec[5], 64)
 			if err != nil {
 				return nil, fmt.Errorf("parse eval-duration: %w", err)
 			}
-			rules = append(rules, struct {
-				grp, typ, name, query, labels string
-				evalTime                      float64
-			}{
-				grp:      rec[0],
-				typ:      rec[1],
-				name:     rec[2],
-				query:    rec[3],
-				labels:   rec[4],
-				evalTime: dur,
+			rules = append(rules, Rule{
+				Group:        rec[0],
+				Type:         rec[1],
+				Name:         rec[2],
+				Query:        rec[3],
+				Labels:       rec[4],
+				EvalDuration: dur,
 			})
 		}
 	}
 	sort.Slice(rules, func(i, j int) bool {
-		return rules[i].evalTime > rules[j].evalTime
+		return rules[i].EvalDuration > rules[j].EvalDuration
 	})
 
-	result := make([]SlowRule, prs.cfg.Limit)
+	results := make([]SlowRule, prs.cfg.Limit)
 	topk := rules[:prs.cfg.Limit]
 	for i, rule := range topk {
-		result[i] = SlowRule{
-			Group:    rule.grp,
-			Typ:      rule.typ,
-			Name:     rule.name,
-			Query:    rule.query,
-			Labels:   rule.labels,
-			EvalTime: time.Duration(rule.evalTime * float64(time.Second)),
+		results[i] = SlowRule{
+			Rule:     rule,
+			EvalTime: time.Duration(rule.EvalDuration * float64(time.Second)),
 		}
 	}
-	return result, nil
+	return &SlowestRulesResult{
+		Rules:     results,
+		ParseErrs: silentErrs,
+	}, nil
 }

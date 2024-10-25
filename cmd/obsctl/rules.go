@@ -107,10 +107,11 @@ func actionRulesSlowest(c *cli.Context) error {
 		return fmt.Errorf("get slowest: %w", err)
 	}
 	slog.Info("Found",
-		slog.Int("total", len(res)),
+		slog.Int("total", len(res.Rules)),
+		slog.Int("errs-count", len(res.ParseErrs)),
 	)
-	for _, slow := range res {
-		slog.Info("Found",
+	for _, slow := range res.Rules {
+		slog.Info("Slow",
 			slog.String("item", fmt.Sprintf("%+v", slow)),
 		)
 	}

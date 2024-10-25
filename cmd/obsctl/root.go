@@ -1,9 +1,10 @@
 package main
 
 import (
+	"os"
+
 	"github.com/eyazici90/obsctl/internal"
 	"github.com/urfave/cli/v2"
-	"os"
 )
 
 var root = &cli.App{
@@ -63,8 +64,8 @@ func actionSetup(c *cli.Context) *Config {
 			Limit:     limit,
 		},
 		TopListerConfig: &internal.TopListerConfig{
-			DashboardFile: dfile,
-			Limit:         limit,
+			DashboardsFile: dfile,
+			Limit:          limit,
 		},
 	}
 }

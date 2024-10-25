@@ -84,10 +84,11 @@ func actionDashboardsTopMetrics(c *cli.Context) error {
 		return fmt.Errorf("list top: %w", err)
 	}
 	slog.Info("Found",
-		slog.Int("total", len(res)),
+		slog.Int("total", len(res.Usages)),
+		slog.Int("errs-count", len(res.ParseErrs)),
 	)
-	for _, usage := range res {
-		slog.Info("Found",
+	for _, usage := range res.Usages {
+		slog.Info("Usage",
 			slog.String("item", fmt.Sprintf("%+v", usage)),
 		)
 	}
