@@ -3,7 +3,9 @@ package internal
 import (
 	"context"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -169,5 +171,94 @@ func (mex *MetricsExporter) Export(ctx context.Context) error {
 
 func (mex *MetricsExporter) writeHeaders(w *csv.Writer, buf []string) error {
 	buf[0] = "name"
+	return w.Write(buf)
+}
+
+type DashboardsExportConfig struct {
+	*ExportConfig
+	SvcToken string
+}
+
+type DashboardsExporter struct {
+	cfg  *DashboardsExportConfig
+	pool *GrafanaClientPool
+}
+
+func NewDashboardsExporter(cfg *DashboardsExportConfig) (*DashboardsExporter, error) {
+	return &DashboardsExporter{
+		cfg: cfg,
+		pool: NewGrafanaClientPool(&GrafanaConfig{
+			URL:    cfg.Addr,
+			Scheme: "https",
+		}),
+	}, nil
+}
+
+func (dex *DashboardsExporter) Export(ctx context.Context) error {
+	graf := dex.pool.DefaultHTTP(dex.cfg.SvcToken)
+	boardIDs, err := getAllDashboards(ctx, graf)
+	if err != nil {
+		return fmt.Errorf("get all dashboards: %w", err)
+	}
+
+	c := len(boardIDs)
+	slog.Info("Found dashboards", slog.Int("count", c))
+	boards := make([]*Board, 0, c)
+	for _, uid := range boardIDs {
+		slog.Debug("Fetching board", slog.String("uid", uid))
+		db, err := getDashboardByUID(ctx, graf, uid)
+		if err != nil {
+			return fmt.Errorf("get board: %w", err)
+		}
+		boards = append(boards, db)
+	}
+
+	f, err := os.Create(dex.cfg.Output)
+	if err != nil {
+		return fmt.Errorf("create output file: %w", err)
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	const batchSize, numCol = 100, 3
+	w := csv.NewWriter(f)
+	buf := make([]string, numCol)
+	if err = dex.writeHeaders(w, buf); err != nil {
+		return fmt.Errorf("write headers: %w", err)
+	}
+
+	var n uint16
+	for _, board := range boards {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			if n >= batchSize {
+				w.Flush()
+				if err = w.Error(); err != nil {
+					return fmt.Errorf("flush csv: %w", err)
+				}
+				n = 0
+			}
+			n++
+			jsn, err := json.Marshal(board.Panels)
+			if err != nil {
+				return fmt.Errorf("marshal panels: %w", err)
+			}
+			buf[0] = board.UID
+			buf[1] = board.Title
+			buf[2] = string(jsn)
+			if err = w.Write(buf); err != nil {
+				return fmt.Errorf("write: %w", err)
+			}
+		}
+	}
+	w.Flush()
+	return nil
+}
+
+func (dex *DashboardsExporter) writeHeaders(w *csv.Writer, buf []string) error {
+	buf[0], buf[1], buf[2] = "uid", "title", "panels"
 	return w.Write(buf)
 }

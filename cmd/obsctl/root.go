@@ -24,6 +24,7 @@ var root = &cli.App{
 
 type Config struct {
 	*internal.ExportConfig
+	*internal.DashboardsExportConfig
 	*internal.CheckerConfig
 	*internal.SlowestConfig
 }
@@ -37,10 +38,16 @@ func actionSetup(c *cli.Context) *Config {
 	limit := c.Uint64("limit")
 	out := c.String("output")
 	rfile, mfile := c.String("rules-file"), c.String("metrics-file")
+	token := c.String("svc-token")
+	expr := &internal.ExportConfig{
+		Addr:   addr,
+		Output: out,
+	}
 	return &Config{
-		ExportConfig: &internal.ExportConfig{
-			Addr:   addr,
-			Output: out,
+		ExportConfig: expr,
+		DashboardsExportConfig: &internal.DashboardsExportConfig{
+			ExportConfig: expr,
+			SvcToken:     token,
 		},
 		CheckerConfig: &internal.CheckerConfig{
 			RulesFile:   rfile,
