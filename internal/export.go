@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	promapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
@@ -164,23 +165,23 @@ type DashboardsExportConfig struct {
 }
 
 type DashboardsExporter struct {
-	cfg  *DashboardsExportConfig
-	pool *GrafanaClientPool
+	cfg     *DashboardsExportConfig
+	grafana *goapi.GrafanaHTTPAPI
 }
 
 func NewDashboardsExporter(cfg *DashboardsExportConfig) (*DashboardsExporter, error) {
 	return &DashboardsExporter{
 		cfg: cfg,
-		pool: NewGrafanaClientPool(&GrafanaConfig{
+		grafana: newGrafanaOAPI(&GrafanaConfig{
 			URL:    cfg.Addr,
 			Scheme: "https",
+			APIKey: cfg.SvcToken,
 		}),
 	}, nil
 }
 
 func (dex *DashboardsExporter) Export(ctx context.Context) error {
-	graf := dex.pool.DefaultHTTP(dex.cfg.SvcToken)
-	boardIDs, err := getAllDashboards(ctx, graf)
+	boardIDs, err := getAllDashboards(ctx, dex.grafana)
 	if err != nil {
 		return fmt.Errorf("get all dashboards: %w", err)
 	}
@@ -190,7 +191,7 @@ func (dex *DashboardsExporter) Export(ctx context.Context) error {
 	boards := make([]*Board, 0, c)
 	for _, uid := range boardIDs {
 		slog.Debug("Fetching board", slog.String("uid", uid))
-		db, err := getDashboardByUID(ctx, graf, uid)
+		db, err := getDashboardByUID(ctx, dex.grafana, uid)
 		if err != nil {
 			return fmt.Errorf("get board: %w", err)
 		}

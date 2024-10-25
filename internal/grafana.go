@@ -6,9 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"strconv"
-	"sync"
 
 	"github.com/go-openapi/runtime"
 	rtclient "github.com/go-openapi/runtime/client"
@@ -22,44 +20,23 @@ import (
 type GrafanaConfig struct {
 	URL    string
 	Scheme string
+	APIKey string
 }
 
-type GrafanaClientPool struct {
-	conf   *GrafanaConfig
-	client *http.Client
-
-	sync.Once
-	basicAPI *goapi.GrafanaHTTPAPI
-}
-
-func NewGrafanaClientPool(conf *GrafanaConfig) *GrafanaClientPool {
-	return &GrafanaClientPool{
-		conf:   conf,
-		client: cleanhttp.DefaultPooledClient(),
-	}
-}
-
-// DefaultHTTP configures the Open API generated client to communicate with Grafana
-// with the authorization header. If authorizing with an API key or service key, token must
-// Bearer {apiKey}.
-func (gp *GrafanaClientPool) DefaultHTTP(apiKey string) *goapi.GrafanaHTTPAPI {
-	cfg := gp.defaultOAPITransportConf()
-	cfg.APIKey = apiKey
-	return goapi.New(newOAPITransportWithConfig(cfg), cfg, strfmt.Default)
-}
-
-func (gp *GrafanaClientPool) defaultOAPITransportConf() *goapi.TransportConfig {
-	return &goapi.TransportConfig{
-		Client: gp.client,
+func newGrafanaOAPI(cfg *GrafanaConfig) *goapi.GrafanaHTTPAPI {
+	tc := &goapi.TransportConfig{
+		Client: cleanhttp.DefaultPooledClient(),
 		// Host is the domain name or IP address of the host that serves the API.
-		Host: gp.conf.URL,
+		Host: cfg.URL,
 		// BasePath is the URL prefix for all API paths, relative to the host root.
 		BasePath: "/api",
 		// Schemes are the transfer protocols used by the API (http or https).
-		Schemes: []string{gp.conf.Scheme},
+		Schemes: []string{cfg.Scheme},
 		// TLSConfig provides an optional configuration for a TLS client
 		TLSConfig: &tls.Config{},
+		APIKey:    cfg.APIKey,
 	}
+	return goapi.New(newOAPITransportWithConfig(tc), tc, strfmt.Default)
 }
 
 // newOAPITransportWithConfig is inline from https://github.com/grafana/grafana-openapi-client-go/blob/main/client/grafana_http_api_client.go#L420-L462.
@@ -98,12 +75,11 @@ func newOAPITransportWithConfig(cfg *goapi.TransportConfig) *rtclient.Runtime {
 }
 
 func getAllDashboards(ctx context.Context, graf *goapi.GrafanaHTTPAPI) ([]string, error) {
-	typ := "dash-db"
 	var (
+		typ               = "dash-db"
 		page, limit int64 = 1, 100
+		results     []string
 	)
-
-	var results []string
 	for {
 		resp, err := graf.Search.Search(&search.SearchParams{
 			Limit:   &limit,
