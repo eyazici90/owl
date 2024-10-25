@@ -17,8 +17,9 @@ var rulesCmd = &cli.Command{
 			Action: actionRulesExport,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
-					Name:  "output",
-					Value: "rules.csv",
+					Name:    "output",
+					Aliases: []string{"o"},
+					Value:   "rules.csv",
 				},
 			},
 		},

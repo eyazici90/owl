@@ -17,8 +17,9 @@ var metricsCmd = &cli.Command{
 			Action: actionMetricsExport,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
-					Name:  "output",
-					Value: "metrics.csv",
+					Name:    "output",
+					Aliases: []string{"o"},
+					Value:   "metrics.csv",
 				},
 			},
 		},
