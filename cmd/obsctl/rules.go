@@ -13,7 +13,7 @@ var rulesCmd = &cli.Command{
 	Subcommands: []*cli.Command{
 		{
 			Name:   "export",
-			Usage:  `exports prom rules to csv file`,
+			Usage:  `Exports prom rules to csv file`,
 			Action: actionRulesExport,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
@@ -21,12 +21,17 @@ var rulesCmd = &cli.Command{
 					Aliases: []string{"o"},
 					Value:   "rules.csv",
 				},
+				&cli.StringFlag{
+					Name:  "addr",
+					Value: "https://demo.promlabs.com/",
+					// Required: true,
+				},
 			},
 		},
 		{
-			Name:   "check",
+			Name:   "idle",
 			Usage:  `Scans prom rules to find ones that are missing metrics`,
-			Action: actionRulesCheck,
+			Action: actionRulesIdle,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:  "rules-file",
@@ -58,20 +63,13 @@ var rulesCmd = &cli.Command{
 			},
 		},
 	},
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "addr",
-			Value: "https://demo.promlabs.com/",
-			// Required: true,
-		},
-	},
 }
 
 func actionRulesExport(c *cli.Context) error {
 	cfg := actionSetup(c)
 	exp, err := internal.NewRulesExporter(cfg.ExportConfig)
 	if err != nil {
-		return fmt.Errorf("new prom analyser: %w", err)
+		return fmt.Errorf("new rules exporter: %w", err)
 	}
 	if err = exp.Export(c.Context); err != nil {
 		return fmt.Errorf("export: %w", err)
@@ -81,12 +79,12 @@ func actionRulesExport(c *cli.Context) error {
 	return nil
 }
 
-func actionRulesCheck(c *cli.Context) error {
+func actionRulesIdle(c *cli.Context) error {
 	cfg := actionSetup(c)
-	pra := internal.NewPromRulesChecker(cfg.CheckerConfig)
-	res, err := pra.CheckStaleRules(c.Context)
+	pri := internal.NewPromRulesIdler(cfg.IdlerConfig)
+	res, err := pri.List(c.Context)
 	if err != nil {
-		return fmt.Errorf("get rules missing: %w", err)
+		return fmt.Errorf("list idle rules: %w", err)
 	}
 	slog.Info("Found",
 		slog.Int("total", len(res)),

@@ -48,15 +48,9 @@ var dashboardsCmd = &cli.Command{
 			},
 		},
 		{
-			Name:   "stale",
-			Usage:  `Find panels whose metrics don't exist anymore'`,
-			Action: actionDashboardsStale,
-			Flags:  []cli.Flag{},
-		},
-		{
-			Name:   "check",
-			Usage:  `Scans dashboards, prom rules & metrics to find ones that are missing those`,
-			Action: actionDashboardsCheck,
+			Name:   "idle",
+			Usage:  `Find panels in the dashboard whose metrics don't exist anymore'`,
+			Action: actionDashboardsIdle,
 			Flags:  []cli.Flag{},
 		},
 	},
@@ -95,9 +89,6 @@ func actionDashboardsTopMetrics(c *cli.Context) error {
 	return nil
 }
 
-func actionDashboardsCheck(c *cli.Context) error {
-	return nil
-}
-func actionDashboardsStale(c *cli.Context) error {
+func actionDashboardsIdle(c *cli.Context) error {
 	return nil
 }

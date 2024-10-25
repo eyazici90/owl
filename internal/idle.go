@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-type CheckerConfig struct {
+type IdlerConfig struct {
 	RulesFile, MetricsFile string
 	Limit                  uint64
 }
@@ -18,18 +18,18 @@ type RuleMissingMetrics struct {
 	Metrics MetricNames
 }
 
-type PromRulesChecker struct {
-	cfg *CheckerConfig
+type PromRulesIdler struct {
+	cfg *IdlerConfig
 }
 
-func NewPromRulesChecker(cfg *CheckerConfig) *PromRulesChecker {
-	return &PromRulesChecker{
+func NewPromRulesIdler(cfg *IdlerConfig) *PromRulesIdler {
+	return &PromRulesIdler{
 		cfg: cfg,
 	}
 }
 
-func (prc *PromRulesChecker) CheckStaleRules(ctx context.Context) ([]RuleMissingMetrics, error) {
-	mf, err := os.Open(prc.cfg.MetricsFile)
+func (pri *PromRulesIdler) List(ctx context.Context) ([]RuleMissingMetrics, error) {
+	mf, err := os.Open(pri.cfg.MetricsFile)
 	if err != nil {
 		return nil, fmt.Errorf("open metrics: %w", err)
 	}
@@ -60,7 +60,7 @@ OUT:
 		}
 	}
 
-	rf, err := os.Open(prc.cfg.RulesFile)
+	rf, err := os.Open(pri.cfg.RulesFile)
 	if err != nil {
 		return nil, fmt.Errorf("open rules: %w", err)
 	}
@@ -80,7 +80,7 @@ EXIT:
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		default:
-			if prc.isOffLimit(len(result)) {
+			if pri.isOffLimit(len(result)) {
 				break EXIT
 			}
 			rec, err := rr.Read()
@@ -113,8 +113,8 @@ EXIT:
 	return result, nil
 }
 
-func (prc *PromRulesChecker) isOffLimit(n int) bool {
-	return uint64(n) >= prc.cfg.Limit
+func (pri *PromRulesIdler) isOffLimit(n int) bool {
+	return uint64(n) >= pri.cfg.Limit
 }
 
 func missingValues[T comparable](search map[T]struct{}, vals ...T) ([]T, bool) {

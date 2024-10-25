@@ -27,7 +27,7 @@ var root = &cli.App{
 type Config struct {
 	*internal.ExportConfig
 	*internal.DashboardsExportConfig
-	*internal.CheckerConfig
+	*internal.IdlerConfig
 	*internal.SlowestConfig
 	*internal.TopListerConfig
 }
@@ -54,7 +54,7 @@ func actionSetup(c *cli.Context) *Config {
 			ExportConfig: expr,
 			SvcToken:     token,
 		},
-		CheckerConfig: &internal.CheckerConfig{
+		IdlerConfig: &internal.IdlerConfig{
 			RulesFile:   rfile,
 			MetricsFile: mfile,
 			Limit:       limit,

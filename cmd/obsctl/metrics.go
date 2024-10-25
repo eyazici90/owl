@@ -21,14 +21,12 @@ var metricsCmd = &cli.Command{
 					Aliases: []string{"o"},
 					Value:   "metrics.csv",
 				},
+				&cli.StringFlag{
+					Name:  "addr",
+					Value: "https://demo.promlabs.com/",
+					// Required: true,
+				},
 			},
-		},
-	},
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "addr",
-			Value: "https://demo.promlabs.com/",
-			// Required: true,
 		},
 	},
 }
