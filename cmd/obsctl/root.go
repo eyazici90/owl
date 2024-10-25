@@ -28,6 +28,7 @@ type Config struct {
 	*internal.DashboardsExportConfig
 	*internal.CheckerConfig
 	*internal.SlowestConfig
+	*internal.TopListerConfig
 }
 
 func actionSetup(c *cli.Context) *Config {
@@ -38,7 +39,9 @@ func actionSetup(c *cli.Context) *Config {
 	addr := c.String("addr")
 	limit := c.Uint64("limit")
 	out := c.String("output")
-	rfile, mfile := c.String("rules-file"), c.String("metrics-file")
+	rfile := c.String("rules-file")
+	mfile := c.String("metrics-file")
+	dfile := c.String("dashboards-file")
 	token := c.String("svc-token")
 	expr := &internal.ExportConfig{
 		Addr:   addr,
@@ -58,6 +61,10 @@ func actionSetup(c *cli.Context) *Config {
 		SlowestConfig: &internal.SlowestConfig{
 			RulesFile: rfile,
 			Limit:     limit,
+		},
+		TopListerConfig: &internal.TopListerConfig{
+			DashboardFile: dfile,
+			Limit:         limit,
 		},
 	}
 }

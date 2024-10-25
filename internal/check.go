@@ -29,7 +29,7 @@ func NewPromRulesChecker(cfg *CheckerConfig) *PromRulesChecker {
 	}
 }
 
-func (prc *PromRulesChecker) GetRulesMissingMetrics(ctx context.Context) ([]RuleMissingMetrics, error) {
+func (prc *PromRulesChecker) CheckStaleRules(ctx context.Context) ([]RuleMissingMetrics, error) {
 	mf, err := os.Open(prc.cfg.MetricsFile)
 	if err != nil {
 		return nil, fmt.Errorf("open metrics: %w", err)

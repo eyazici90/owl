@@ -84,7 +84,7 @@ func actionRulesExport(c *cli.Context) error {
 func actionRulesCheck(c *cli.Context) error {
 	cfg := actionSetup(c)
 	pra := internal.NewPromRulesChecker(cfg.CheckerConfig)
-	res, err := pra.GetRulesMissingMetrics(c.Context)
+	res, err := pra.CheckStaleRules(c.Context)
 	if err != nil {
 		return fmt.Errorf("get rules missing: %w", err)
 	}

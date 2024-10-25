@@ -23,6 +23,33 @@ var dashboardsCmd = &cli.Command{
 				},
 			},
 		},
+		{
+			Name:   "top-metrics",
+			Usage:  `Lists metrics that are used most in the grafana dashboards`,
+			Action: actionDashboardsTopMetrics,
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:  "dashboards-file",
+					Value: "dashboards.csv",
+				},
+				&cli.Uint64Flag{
+					Name:  "limit",
+					Value: 10,
+				},
+			},
+		},
+		{
+			Name:   "stale",
+			Usage:  `Find panels whose metrics don't exist anymore'`,
+			Action: actionDashboardsStale,
+			Flags:  []cli.Flag{},
+		},
+		{
+			Name:   "check",
+			Usage:  `Scans dashboards, prom rules & metrics to find ones that are missing those`,
+			Action: actionDashboardsCheck,
+			Flags:  []cli.Flag{},
+		},
 	},
 	Flags: []cli.Flag{
 		&cli.StringFlag{
@@ -48,5 +75,30 @@ func actionDashboardsExport(c *cli.Context) error {
 	}
 
 	slog.Info("Dashboards export finished!")
+	return nil
+}
+
+func actionDashboardsTopMetrics(c *cli.Context) error {
+	cfg := actionSetup(c)
+	tl := internal.NewTopMetricsLister(cfg.TopListerConfig)
+	res, err := tl.List(c.Context)
+	if err != nil {
+		return fmt.Errorf("list top: %w", err)
+	}
+	slog.Info("Found",
+		slog.Int("total", len(res)),
+	)
+	for _, usage := range res {
+		slog.Info("Found",
+			slog.String("item", fmt.Sprintf("%+v", usage)),
+		)
+	}
+	return nil
+}
+
+func actionDashboardsCheck(c *cli.Context) error {
+	return nil
+}
+func actionDashboardsStale(c *cli.Context) error {
 	return nil
 }
