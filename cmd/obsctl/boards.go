@@ -13,7 +13,7 @@ var dashboardsCmd = &cli.Command{
 	Subcommands: []*cli.Command{
 		{
 			Name:   "export",
-			Usage:  `exports grafana dashboards to csv files`,
+			Usage:  `exports grafana dashboards to csv file`,
 			Action: actionDashboardsExport,
 			Flags: []cli.Flag{
 				&cli.StringFlag{

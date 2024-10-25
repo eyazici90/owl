@@ -13,7 +13,7 @@ var rulesCmd = &cli.Command{
 	Subcommands: []*cli.Command{
 		{
 			Name:   "export",
-			Usage:  `exports prom rules to csv files`,
+			Usage:  `exports prom rules to csv file`,
 			Action: actionRulesExport,
 			Flags: []cli.Flag{
 				&cli.StringFlag{

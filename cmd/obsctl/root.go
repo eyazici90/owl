@@ -17,7 +17,8 @@ var root = &cli.App{
 	},
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name: "log-level",
+			Name:  "log-level",
+			Value: "info",
 		},
 	},
 }

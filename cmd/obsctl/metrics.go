@@ -13,7 +13,7 @@ var metricsCmd = &cli.Command{
 	Subcommands: []*cli.Command{
 		{
 			Name:   "export",
-			Usage:  `exports prom metrics to csv files`,
+			Usage:  `exports prom metrics to csv file`,
 			Action: actionMetricsExport,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
