@@ -22,8 +22,7 @@ type (
 	panelType int8
 )
 
-type DatasourceRef struct {
-	Type       string `mapstructure:"type"`
-	UID        string `mapstructure:"UID"`
-	LegacyName string `mapstructure:"-"`
+type Datasource struct {
+	Type string `mapstructure:"type"`
+	UID  string `mapstructure:"UID"`
 }

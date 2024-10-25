@@ -48,38 +48,26 @@ func (re *RulesExporter) Export(ctx context.Context) error {
 
 	const batchSize, numCol = 100, 7
 	w := csv.NewWriter(f)
-	buf := make([]string, numCol)
-	if err = re.writeHeaders(w, buf); err != nil {
+	wr := &csvBatchWriter{
+		size: batchSize,
+		buf:  make([]string, numCol),
+		w:    csv.NewWriter(f),
+	}
+	if err = re.writeHeaders(ctx, wr); err != nil {
 		return fmt.Errorf("write headers: %w", err)
 	}
-
-	var n uint16
 	for _, group := range rules.Groups {
-		buf[0] = group.Name
 		for _, rule := range group.Rules {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
+			switch r := rule.(type) {
+			case promapiv1.RecordingRule:
+				if err = re.writeRecordingRule(ctx, wr, r, group.Name); err != nil {
+					return fmt.Errorf("write recording rule: %w", err)
+				}
+			case promapiv1.AlertingRule:
+				if err = re.writeAlertingRule(ctx, wr, r, group.Name); err != nil {
+					return fmt.Errorf("write alerting rule: %w", err)
+				}
 			default:
-				if n >= batchSize {
-					w.Flush()
-					if err = w.Error(); err != nil {
-						return fmt.Errorf("flush csv: %w", err)
-					}
-					n = 0
-				}
-				n++
-				switch r := rule.(type) {
-				case promapiv1.RecordingRule:
-					if err = re.writeRecordingRule(w, buf, r); err != nil {
-						return fmt.Errorf("write recording rule: %w", err)
-					}
-				case promapiv1.AlertingRule:
-					if err = re.writeAlertingRule(w, buf, r); err != nil {
-						return fmt.Errorf("write alerting rule: %w", err)
-					}
-				default:
-				}
 			}
 		}
 	}
@@ -87,21 +75,26 @@ func (re *RulesExporter) Export(ctx context.Context) error {
 	return nil
 }
 
-func (*RulesExporter) writeHeaders(w *csv.Writer, buf []string) error {
-	buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6] = "group", "type", "name", "query", "labels", "evalTime", "lastEval"
-	return w.Write(buf)
+func (*RulesExporter) writeHeaders(ctx context.Context, wr *csvBatchWriter) error {
+	return wr.Write(ctx, func(buf []string) {
+		buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6] = "group", "type", "name", "query", "labels", "evalTime", "lastEval"
+	})
 }
 
-func (*RulesExporter) writeRecordingRule(w *csv.Writer, buf []string, r promapiv1.RecordingRule) error {
-	buf[1], buf[2], buf[3] = "record", r.Name, r.Query
-	buf[4], buf[5], buf[6] = humanizeLabelSet(r.Labels), strconv.FormatFloat(r.EvaluationTime, 'g', -1, 64), r.LastEvaluation.String()
-	return w.Write(buf)
+func (*RulesExporter) writeRecordingRule(ctx context.Context, wr *csvBatchWriter, r promapiv1.RecordingRule, grp string) error {
+	return wr.Write(ctx, func(buf []string) {
+		buf[0] = grp
+		buf[1], buf[2], buf[3] = "record", r.Name, r.Query
+		buf[4], buf[5], buf[6] = humanizeLabelSet(r.Labels), strconv.FormatFloat(r.EvaluationTime, 'g', -1, 64), r.LastEvaluation.String()
+	})
 }
 
-func (*RulesExporter) writeAlertingRule(w *csv.Writer, buf []string, r promapiv1.AlertingRule) error {
-	buf[1], buf[2], buf[3] = "alert", r.Name, r.Query
-	buf[4], buf[5], buf[6] = humanizeLabelSet(r.Labels), strconv.FormatFloat(r.EvaluationTime, 'g', -1, 64), r.LastEvaluation.String()
-	return w.Write(buf)
+func (*RulesExporter) writeAlertingRule(ctx context.Context, wr *csvBatchWriter, r promapiv1.AlertingRule, grp string) error {
+	return wr.Write(ctx, func(buf []string) {
+		buf[0] = grp
+		buf[1], buf[2], buf[3] = "alert", r.Name, r.Query
+		buf[4], buf[5], buf[6] = humanizeLabelSet(r.Labels), strconv.FormatFloat(r.EvaluationTime, 'g', -1, 64), r.LastEvaluation.String()
+	})
 }
 
 func humanizeLabelSet(labels model.LabelSet) string {
@@ -139,39 +132,30 @@ func (mex *MetricsExporter) Export(ctx context.Context) error {
 	}()
 
 	const batchSize, numCol = 100, 1
-	w := csv.NewWriter(f)
-	buf := make([]string, numCol)
-	if err = mex.writeHeaders(w, buf); err != nil {
+	wr := &csvBatchWriter{
+		size: batchSize,
+		buf:  make([]string, numCol),
+		w:    csv.NewWriter(f),
+	}
+	if err = mex.writeHeaders(ctx, wr); err != nil {
 		return fmt.Errorf("write headers: %w", err)
 	}
-
-	var n uint16
 	for _, metric := range metrics {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			if n >= batchSize {
-				w.Flush()
-				if err = w.Error(); err != nil {
-					return fmt.Errorf("flush csv: %w", err)
-				}
-				n = 0
-			}
-			n++
+		err = wr.Write(ctx, func(buf []string) {
 			buf[0] = string(metric)
-			if err = w.Write(buf); err != nil {
-				return fmt.Errorf("write: %w", err)
-			}
+		})
+		if err != nil {
+			return err
 		}
 	}
-	w.Flush()
+	wr.Flush()
 	return nil
 }
 
-func (mex *MetricsExporter) writeHeaders(w *csv.Writer, buf []string) error {
-	buf[0] = "name"
-	return w.Write(buf)
+func (mex *MetricsExporter) writeHeaders(ctx context.Context, wr *csvBatchWriter) error {
+	return wr.Write(ctx, func(buf []string) {
+		buf[0] = "name"
+	})
 }
 
 type DashboardsExportConfig struct {
@@ -222,43 +206,31 @@ func (dex *DashboardsExporter) Export(ctx context.Context) error {
 	}()
 
 	const batchSize, numCol = 100, 3
-	w := csv.NewWriter(f)
-	buf := make([]string, numCol)
-	if err = dex.writeHeaders(w, buf); err != nil {
+	wr := &csvBatchWriter{
+		size: batchSize,
+		buf:  make([]string, numCol),
+		w:    csv.NewWriter(f),
+	}
+	if err = dex.writeHeaders(ctx, wr); err != nil {
 		return fmt.Errorf("write headers: %w", err)
 	}
-
-	var n uint16
 	for _, board := range boards {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			if n >= batchSize {
-				w.Flush()
-				if err = w.Error(); err != nil {
-					return fmt.Errorf("flush csv: %w", err)
-				}
-				n = 0
-			}
-			n++
-			jsn, err := json.Marshal(board.Panels)
-			if err != nil {
-				return fmt.Errorf("marshal panels: %w", err)
-			}
+		jsn, err := json.Marshal(board.Panels)
+		if err != nil {
+			return fmt.Errorf("marshal panels: %w", err)
+		}
+		err = wr.Write(ctx, func(buf []string) {
 			buf[0] = board.UID
 			buf[1] = board.Title
 			buf[2] = string(jsn)
-			if err = w.Write(buf); err != nil {
-				return fmt.Errorf("write: %w", err)
-			}
-		}
+		})
 	}
-	w.Flush()
+	wr.Flush()
 	return nil
 }
 
-func (dex *DashboardsExporter) writeHeaders(w *csv.Writer, buf []string) error {
-	buf[0], buf[1], buf[2] = "uid", "title", "panels"
-	return w.Write(buf)
+func (dex *DashboardsExporter) writeHeaders(ctx context.Context, wr *csvBatchWriter) error {
+	return wr.Write(ctx, func(buf []string) {
+		buf[0], buf[1], buf[2] = "uid", "title", "panels"
+	})
 }
