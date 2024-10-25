@@ -21,6 +21,15 @@ var dashboardsCmd = &cli.Command{
 					Aliases: []string{"o"},
 					Value:   "dashboards.csv",
 				},
+				&cli.StringFlag{
+					Name:  "addr",
+					Value: "play.grafana.org",
+					// Required: true,
+				},
+				&cli.StringFlag{
+					Name:     "svc-token",
+					Required: true,
+				},
 			},
 		},
 		{
@@ -49,17 +58,6 @@ var dashboardsCmd = &cli.Command{
 			Usage:  `Scans dashboards, prom rules & metrics to find ones that are missing those`,
 			Action: actionDashboardsCheck,
 			Flags:  []cli.Flag{},
-		},
-	},
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "addr",
-			Value: "play.grafana.org",
-			// Required: true,
-		},
-		&cli.StringFlag{
-			Name:     "svc-token",
-			Required: true,
 		},
 	},
 }
