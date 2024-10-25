@@ -25,7 +25,7 @@ var metricsCmd = &cli.Command{
 	},
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "prom-addr",
+			Name:  "addr",
 			Value: "https://demo.promlabs.com/",
 			// Required: true,
 		},

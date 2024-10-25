@@ -33,7 +33,7 @@ func actionSetup(c *cli.Context) *Config {
 	l := internal.ParseLevel(level)
 	internal.SetUpSlog(os.Stderr, l)
 
-	addr := c.String("prom-addr")
+	addr := c.String("addr")
 	limit := c.Uint64("limit")
 	out := c.String("output")
 	rfile, mfile := c.String("rules-file"), c.String("metrics-file")
