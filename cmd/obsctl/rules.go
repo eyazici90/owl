@@ -25,7 +25,7 @@ var rulesCmd = &cli.Command{
 		},
 		{
 			Name:   "check",
-			Usage:  `Scans prom rules to find rules that are missing metrics`,
+			Usage:  `Scans prom rules to find ones that are missing metrics`,
 			Action: actionRulesCheck,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
