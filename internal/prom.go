@@ -27,15 +27,13 @@ func newPromAPIV1(addr string) (promapiv1.API, error) {
 	return promapiv1.NewAPI(cl), nil
 }
 
-type MetricName string
-
-func parsePromQuery(query string) ([]MetricName, error) {
+func parsePromQuery(query string) (MetricNames, error) {
 	expr, err := parser.ParseExpr(query)
 	if err != nil {
 		return nil, fmt.Errorf("parse expr: %w", err)
 	}
 
-	var res []MetricName
+	var res MetricNames
 	parser.Inspect(expr, func(node parser.Node, _ []parser.Node) error {
 		if n, ok := node.(*parser.VectorSelector); ok {
 			if n.Name != "" {

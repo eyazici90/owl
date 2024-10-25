@@ -15,8 +15,8 @@ type CheckerConfig struct {
 }
 
 type RuleMissingMetrics struct {
-	Group, Rule, RuleType string
-	Metrics               []MetricName
+	Rule    Rule
+	Metrics MetricNames
 }
 
 type PromRulesChecker struct {
@@ -91,9 +91,13 @@ EXIT:
 			if err != nil {
 				return nil, fmt.Errorf("read rule: %w", err)
 			}
-
-			grp, typ, name, query := rec[0], rec[1], rec[2], rec[3]
-			ms, err := parsePromQuery(query)
+			rule := Rule{
+				Group: rec[0],
+				Type:  rec[1],
+				Name:  rec[2],
+				Query: rec[3],
+			}
+			ms, err := parsePromQuery(rule.Query)
 			if err != nil {
 				return nil, fmt.Errorf("parse prom expr: %w", err)
 			}
@@ -102,10 +106,8 @@ EXIT:
 				continue
 			}
 			result = append(result, RuleMissingMetrics{
-				Group:    grp,
-				Rule:     name,
-				RuleType: typ,
-				Metrics:  missing,
+				Rule:    rule,
+				Metrics: missing,
 			})
 		}
 	}
