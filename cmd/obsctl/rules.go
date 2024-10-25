@@ -23,9 +23,9 @@ var rulesCmd = &cli.Command{
 			},
 		},
 		{
-			Name:   "analyse",
+			Name:   "check",
 			Usage:  `Scans prom rules to find rules that are missing metrics`,
-			Action: actionRulesAnalyse,
+			Action: actionRulesCheck,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:  "rules-file",
@@ -80,12 +80,12 @@ func actionRulesExport(c *cli.Context) error {
 	return nil
 }
 
-func actionRulesAnalyse(c *cli.Context) error {
+func actionRulesCheck(c *cli.Context) error {
 	cfg := actionSetup(c)
-	pra := internal.NewPromRulesAnalyser(cfg.AnalyserConfig)
-	res, err := pra.FindRulesMissingMetrics(c.Context)
+	pra := internal.NewPromRulesChecker(cfg.CheckerConfig)
+	res, err := pra.GetRulesMissingMetrics(c.Context)
 	if err != nil {
-		return fmt.Errorf("rules missing: %w", err)
+		return fmt.Errorf("get rules missing: %w", err)
 	}
 	slog.Info("Found",
 		slog.Int("total", len(res)),
@@ -103,7 +103,7 @@ func actionRulesSlowest(c *cli.Context) error {
 	prs := internal.NewPromRulesSlowest(cfg.SlowestConfig)
 	res, err := prs.Get(c.Context)
 	if err != nil {
-		return fmt.Errorf("rules missing: %w", err)
+		return fmt.Errorf("get slowest: %w", err)
 	}
 	slog.Info("Found",
 		slog.Int("total", len(res)),

@@ -82,8 +82,8 @@ EXIT:
 	})
 
 	result := make([]SlowRule, prs.cfg.Limit)
-	top := rules[:prs.cfg.Limit]
-	for i, rule := range top {
+	topk := rules[:prs.cfg.Limit]
+	for i, rule := range topk {
 		result[i] = SlowRule{
 			Group:    rule.grp,
 			Typ:      rule.typ,

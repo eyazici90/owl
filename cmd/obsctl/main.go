@@ -34,7 +34,7 @@ func newApp() *cli.App {
 
 type Config struct {
 	*internal.ExportConfig
-	*internal.AnalyserConfig
+	*internal.CheckerConfig
 	*internal.SlowestConfig
 }
 
@@ -52,7 +52,7 @@ func actionSetup(c *cli.Context) *Config {
 			Addr:   addr,
 			Output: out,
 		},
-		AnalyserConfig: &internal.AnalyserConfig{
+		CheckerConfig: &internal.CheckerConfig{
 			RulesFile:   rfile,
 			MetricsFile: mfile,
 			Limit:       limit,

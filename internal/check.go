@@ -9,7 +9,7 @@ import (
 	"regexp"
 )
 
-type AnalyserConfig struct {
+type CheckerConfig struct {
 	RulesFile, MetricsFile string
 	Limit                  uint64
 }
@@ -19,18 +19,18 @@ type RuleMissingMetrics struct {
 	Metrics               []MetricName
 }
 
-type PromRulesAnalyser struct {
-	cfg *AnalyserConfig
+type PromRulesChecker struct {
+	cfg *CheckerConfig
 }
 
-func NewPromRulesAnalyser(cfg *AnalyserConfig) *PromRulesAnalyser {
-	return &PromRulesAnalyser{
+func NewPromRulesChecker(cfg *CheckerConfig) *PromRulesChecker {
+	return &PromRulesChecker{
 		cfg: cfg,
 	}
 }
 
-func (pra *PromRulesAnalyser) FindRulesMissingMetrics(ctx context.Context) ([]RuleMissingMetrics, error) {
-	mf, err := os.Open(pra.cfg.MetricsFile)
+func (prc *PromRulesChecker) GetRulesMissingMetrics(ctx context.Context) ([]RuleMissingMetrics, error) {
+	mf, err := os.Open(prc.cfg.MetricsFile)
 	if err != nil {
 		return nil, fmt.Errorf("open metrics: %w", err)
 	}
@@ -61,7 +61,7 @@ OUT:
 		}
 	}
 
-	rf, err := os.Open(pra.cfg.RulesFile)
+	rf, err := os.Open(prc.cfg.RulesFile)
 	if err != nil {
 		return nil, fmt.Errorf("open rules: %w", err)
 	}
@@ -81,7 +81,7 @@ EXIT:
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		default:
-			if pra.isOffLimit(len(result)) {
+			if prc.isOffLimit(len(result)) {
 				break EXIT
 			}
 			rec, err := rr.Read()
@@ -112,8 +112,8 @@ EXIT:
 	return result, nil
 }
 
-func (pra *PromRulesAnalyser) isOffLimit(n int) bool {
-	return uint64(n) >= pra.cfg.Limit
+func (prc *PromRulesChecker) isOffLimit(n int) bool {
+	return uint64(n) >= prc.cfg.Limit
 }
 
 var validMetricNameExp = regexp.MustCompile(`^[a-zA-Z_:][a-zA-Z0-9_:]*$`)
