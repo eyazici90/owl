@@ -35,7 +35,7 @@ type Datasource struct {
 	UID  string `mapstructure:"UID"`
 }
 
-func csvBoardsWriteAll(ctx context.Context, file string, boards []*Board) error {
+func writeAllBoardsCSV(ctx context.Context, file string, boards []*Board) error {
 	f, err := os.Create(file)
 	if err != nil {
 		return fmt.Errorf("create output file: %w", err)

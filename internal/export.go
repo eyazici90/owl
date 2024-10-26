@@ -33,7 +33,7 @@ func (re *RulesExporter) Export(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("get rules: %w", err)
 	}
-	return csvRulesWriteAll(ctx, re.cfg.Output, rules)
+	return writeAllRulesCSV(ctx, re.cfg.Output, rules)
 }
 
 type MetricsExporter struct {
@@ -54,7 +54,7 @@ func (mex *MetricsExporter) Export(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("get metrics: %w", err)
 	}
-	return csvMetricsWriteAll(ctx, mex.cfg.Output, metrics)
+	return writeAllMetricsCSV(ctx, mex.cfg.Output, metrics)
 }
 
 type DashboardsExportConfig struct {
@@ -95,5 +95,5 @@ func (dex *DashboardsExporter) Export(ctx context.Context) error {
 		}
 		boards = append(boards, db)
 	}
-	return csvBoardsWriteAll(ctx, dex.cfg.Output, boards)
+	return writeAllBoardsCSV(ctx, dex.cfg.Output, boards)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 
@@ -15,7 +16,7 @@ type Rule struct {
 	EvalDuration                     float64
 }
 
-func csvRulesWriteAll(ctx context.Context, file string, rules promapiv1.RulesResult) error {
+func writeAllRulesCSV(ctx context.Context, file string, rules promapiv1.RulesResult) error {
 	f, err := os.Create(file)
 	if err != nil {
 		return fmt.Errorf("create output file: %w", err)
@@ -63,4 +64,53 @@ func csvRulesWriteAll(ctx context.Context, file string, rules promapiv1.RulesRes
 	}
 	wr.Flush()
 	return nil
+}
+
+func realAllRulesCSV(ctx context.Context, file string) ([]Rule, []error, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, nil, fmt.Errorf("open rules: %w", err)
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	r := csv.NewReader(f)
+	if _, err = r.Read(); err != nil { // reading header
+		return nil, nil, fmt.Errorf("read header: %w", err)
+	}
+
+	var (
+		rules      []Rule
+		silentErrs []error
+	)
+OUT:
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, nil, ctx.Err()
+		default:
+			rec, err := r.Read()
+			if err == io.EOF {
+				break OUT
+			}
+			if err != nil {
+				silentErrs = append(silentErrs, fmt.Errorf("read rule: %w", err))
+				continue
+			}
+			dur, err := strconv.ParseFloat(rec[5], 64)
+			if err != nil {
+				return nil, nil, fmt.Errorf("parse eval-duration: %w", err)
+			}
+			rules = append(rules, Rule{
+				Group:        rec[0],
+				Type:         rec[1],
+				Name:         rec[2],
+				Query:        rec[3],
+				Labels:       rec[4],
+				EvalDuration: dur,
+			})
+		}
+	}
+	return rules, silentErrs, nil
 }
