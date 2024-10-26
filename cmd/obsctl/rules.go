@@ -50,7 +50,7 @@ var rulesCmd = &cli.Command{
 		{
 			Name:   "slowest",
 			Action: actionRulesSlowest,
-			Usage:  `Scans prom rules to find slowest based on evaluation duration`,
+			Usage:  `Scans prom rules to find slowest ones based on evaluation durations`,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:  "rules-file",

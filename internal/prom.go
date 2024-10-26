@@ -7,6 +7,7 @@ import (
 
 	"github.com/prometheus/client_golang/api"
 	promapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 )
@@ -75,4 +76,12 @@ func replaceVariables(query string) string {
 	query = variableRangeQueryRangeRegex.ReplaceAllLiteralString(query, `[5m]`)
 	query = variableSubqueryRangeRegex.ReplaceAllLiteralString(query, `[5m:1m]`)
 	return query
+}
+
+func humanizeLabelSet(labels model.LabelSet) string {
+	arr := make([]string, 0, len(labels))
+	for name, val := range labels {
+		arr = append(arr, fmt.Sprintf("%s=%s", name, val))
+	}
+	return strings.Join(arr, ",")
 }
