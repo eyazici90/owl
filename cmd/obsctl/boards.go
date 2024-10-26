@@ -33,9 +33,9 @@ var dashboardsCmd = &cli.Command{
 			},
 		},
 		{
-			Name:   "top-metrics",
-			Usage:  `Lists metrics that are used most in the grafana dashboards`,
-			Action: actionDashboardsTopMetrics,
+			Name:   "top-used",
+			Usage:  `Lists metrics & rules that are used most in the grafana dashboards`,
+			Action: actionDashboardsTopUsed,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:  "dashboards-file",
@@ -70,9 +70,9 @@ func actionDashboardsExport(c *cli.Context) error {
 	return nil
 }
 
-func actionDashboardsTopMetrics(c *cli.Context) error {
+func actionDashboardsTopUsed(c *cli.Context) error {
 	cfg := actionSetup(c)
-	tl := internal.NewTopMetricsLister(cfg.TopListerConfig)
+	tl := internal.NewTopUsedListerInGrafana(cfg.TopListerConfig)
 	res, err := tl.List(c.Context)
 	if err != nil {
 		return fmt.Errorf("list top: %w", err)

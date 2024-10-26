@@ -16,7 +16,7 @@ type TopListerConfig struct {
 }
 
 type (
-	TopMetricsResult struct {
+	TopUsedResult struct {
 		Usages    []MetricUsageInBoard
 		ParseErrs []error
 	}
@@ -26,15 +26,15 @@ type (
 	}
 )
 
-type TopMetricsLister struct {
+type TopUsedListerInGrafana struct {
 	cfg *TopListerConfig
 }
 
-func NewTopMetricsLister(cfg *TopListerConfig) *TopMetricsLister {
-	return &TopMetricsLister{cfg: cfg}
+func NewTopUsedListerInGrafana(cfg *TopListerConfig) *TopUsedListerInGrafana {
+	return &TopUsedListerInGrafana{cfg: cfg}
 }
 
-func (tl *TopMetricsLister) List(ctx context.Context) (*TopMetricsResult, error) {
+func (tl *TopUsedListerInGrafana) List(ctx context.Context) (*TopUsedResult, error) {
 	f, err := os.Open(tl.cfg.DashboardsFile)
 	if err != nil {
 		return nil, fmt.Errorf("open dashboards: %w", err)
@@ -96,7 +96,7 @@ OUT:
 	sort.Slice(usage, func(i, j int) bool {
 		return usage[i].Used > usage[j].Used
 	})
-	return &TopMetricsResult{
+	return &TopUsedResult{
 		Usages:    usage[:tl.cfg.Limit],
 		ParseErrs: silentErrs,
 	}, nil
