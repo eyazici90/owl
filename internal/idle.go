@@ -3,9 +3,12 @@ package internal
 import (
 	"context"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type IdlerConfig struct {
@@ -88,6 +91,141 @@ EXIT:
 
 func (pri *PromRulesIdler) isOffLimit(n int) bool {
 	return uint64(n) >= pri.cfg.Limit
+}
+
+type IdleDashboardsResult struct {
+	IdleDashboards []struct {
+		Board    Board
+		Missings map[MetricName]struct{}
+	}
+	ParseErrs []error
+}
+
+type DashboardsIdlerConfig struct {
+	*IdlerConfig
+	DashboardsFile string
+}
+
+type DashboardsIdler struct {
+	cfg *DashboardsIdlerConfig
+}
+
+func NewDashboardsIdler(cfg *DashboardsIdlerConfig) *DashboardsIdler {
+	return &DashboardsIdler{
+		cfg: cfg,
+	}
+}
+
+func (dsi *DashboardsIdler) List(ctx context.Context) (*IdleDashboardsResult, error) {
+	var (
+		metrics    map[MetricName]struct{}
+		rules      map[RuleName]struct{}
+		silentErrs []error
+	)
+	eg, egctx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		res, err := realAllMetricsCSV(egctx, dsi.cfg.MetricsFile)
+		if err != nil {
+			return err
+		}
+		metrics = res
+		return nil
+	})
+	eg.Go(func() error {
+		res, se, err := realAllRulesCSV(egctx, dsi.cfg.RulesFile)
+		if err != nil {
+			return err
+		}
+		rules = distinctRuleNames(res)
+		silentErrs = se
+		return nil
+	})
+	if err := eg.Wait(); err != nil {
+		return nil, fmt.Errorf("wait eg: %w", err)
+	}
+	f, err := os.Open(dsi.cfg.DashboardsFile)
+	if err != nil {
+		return nil, fmt.Errorf("open dashboards: %w", err)
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	r := csv.NewReader(f)
+	if _, err = r.Read(); err != nil { // reading header
+		return nil, fmt.Errorf("read header: %w", err)
+	}
+
+	var idleDashboards []struct {
+		Board    Board
+		Missings map[MetricName]struct{}
+	}
+OUT:
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			if dsi.isOffLimit(len(idleDashboards)) {
+				break OUT
+			}
+			board, err := r.Read()
+			if err == io.EOF {
+				break OUT
+			}
+			if err != nil {
+				return nil, fmt.Errorf("read dashboard: %w", err)
+			}
+
+			var panels []*Panel
+			if err := json.Unmarshal([]byte(board[2]), &panels); err != nil {
+				return nil, fmt.Errorf("unmarshal panel: %w", err)
+			}
+
+			missings := make(map[MetricName]struct{})
+			for _, panel := range panels {
+				for _, target := range panel.Targets {
+					if target.Expr == "" {
+						continue
+					}
+					ms, err := parsePromQuery(target.Expr)
+					if err != nil {
+						silentErrs = append(silentErrs, fmt.Errorf("parse expr: %w", err))
+						continue
+					}
+					for _, m := range ms {
+						if _, ok := rules[RuleName(m)]; ok {
+							continue
+						}
+						if _, ok := metrics[m]; ok {
+							continue
+						}
+						missings[m] = struct{}{}
+					}
+				}
+			}
+			if len(missings) > 0 {
+				idleDashboards = append(idleDashboards, struct {
+					Board    Board
+					Missings map[MetricName]struct{}
+				}{
+					Board: Board{
+						UID:   board[0],
+						Title: board[1],
+					},
+					Missings: missings,
+				})
+			}
+		}
+	}
+	return &IdleDashboardsResult{
+		IdleDashboards: idleDashboards,
+		ParseErrs:      silentErrs,
+	}, nil
+}
+
+func (dsi *DashboardsIdler) isOffLimit(n int) bool {
+	return uint64(n) >= dsi.cfg.Limit
 }
 
 func missingValues[T comparable](search map[T]struct{}, vals ...T) ([]T, bool) {

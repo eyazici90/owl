@@ -51,7 +51,24 @@ var dashboardsCmd = &cli.Command{
 			Name:   "idle",
 			Usage:  `Find panels in the dashboard whose metrics don't exist anymore'`,
 			Action: actionDashboardsIdle,
-			Flags:  []cli.Flag{},
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:  "dashboards-file",
+					Value: "dashboards.csv",
+				},
+				&cli.StringFlag{
+					Name:  "rules-file",
+					Value: "rules.csv",
+				},
+				&cli.StringFlag{
+					Name:  "metrics-file",
+					Value: "metrics.csv",
+				},
+				&cli.Uint64Flag{
+					Name:  "limit",
+					Value: 10,
+				},
+			},
 		},
 	},
 }
@@ -65,7 +82,6 @@ func actionDashboardsExport(c *cli.Context) error {
 	if err = exp.Export(c.Context); err != nil {
 		return fmt.Errorf("export: %w", err)
 	}
-
 	slog.Info("Dashboards export finished!")
 	return nil
 }
@@ -93,5 +109,22 @@ func actionDashboardsTopUsed(c *cli.Context) error {
 }
 
 func actionDashboardsIdle(c *cli.Context) error {
+	cfg := actionSetup(c)
+	dsi := internal.NewDashboardsIdler(cfg.DashboardsIdlerConfig)
+	res, err := dsi.List(c.Context)
+	if err != nil {
+		return fmt.Errorf("list idle dashboards: %w", err)
+	}
+	slog.Info("Found",
+		slog.Int("total", len(res.IdleDashboards)),
+	)
+	for _, pe := range res.ParseErrs {
+		slog.Debug("Error", slog.Any("msg", pe))
+	}
+	for _, ds := range res.IdleDashboards {
+		slog.Info("Found",
+			slog.String("item", fmt.Sprintf("%+v", ds)),
+		)
+	}
 	return nil
 }

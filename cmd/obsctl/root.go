@@ -26,8 +26,10 @@ var root = &cli.App{
 
 type Config struct {
 	*internal.ExportConfig
+	*internal.MetricsExporterConfig
 	*internal.DashboardsExportConfig
 	*internal.IdlerConfig
+	*internal.DashboardsIdlerConfig
 	*internal.SlowestConfig
 	*internal.TopListerConfig
 }
@@ -40,6 +42,7 @@ func actionSetup(c *cli.Context) *Config {
 	addr := c.String("addr")
 	limit := c.Uint64("limit")
 	out := c.String("output")
+	since := c.String("since")
 	rfile := c.String("rules-file")
 	mfile := c.String("metrics-file")
 	dfile := c.String("dashboards-file")
@@ -48,16 +51,25 @@ func actionSetup(c *cli.Context) *Config {
 		Addr:   addr,
 		Output: out,
 	}
+	idle := &internal.IdlerConfig{
+		RulesFile:   rfile,
+		MetricsFile: mfile,
+		Limit:       limit,
+	}
 	return &Config{
 		ExportConfig: expr,
+		MetricsExporterConfig: &internal.MetricsExporterConfig{
+			ExportConfig: expr,
+			Since:        since,
+		},
 		DashboardsExportConfig: &internal.DashboardsExportConfig{
 			ExportConfig: expr,
 			SvcToken:     token,
 		},
-		IdlerConfig: &internal.IdlerConfig{
-			RulesFile:   rfile,
-			MetricsFile: mfile,
-			Limit:       limit,
+		IdlerConfig: idle,
+		DashboardsIdlerConfig: &internal.DashboardsIdlerConfig{
+			IdlerConfig:    idle,
+			DashboardsFile: dfile,
 		},
 		SlowestConfig: &internal.SlowestConfig{
 			RulesFile: rfile,
