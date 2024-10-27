@@ -117,6 +117,7 @@ func actionDashboardsIdle(c *cli.Context) error {
 	}
 	slog.Info("Found",
 		slog.Int("total", len(res.IdleDashboards)),
+		slog.Int("err-count", len(res.ParseErrs)),
 	)
 	for _, pe := range res.ParseErrs {
 		slog.Debug("Error", slog.Any("msg", pe))

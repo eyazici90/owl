@@ -93,13 +93,16 @@ func (pri *PromRulesIdler) isOffLimit(n int) bool {
 	return uint64(n) >= pri.cfg.Limit
 }
 
-type IdleDashboardsResult struct {
-	IdleDashboards []struct {
+type (
+	IdleDashboardsResult struct {
+		IdleDashboards []IdleDashboard
+		ParseErrs      []error
+	}
+	IdleDashboard struct {
 		Board    Board
 		Missings map[MetricName]struct{}
 	}
-	ParseErrs []error
-}
+)
 
 type DashboardsIdlerConfig struct {
 	*IdlerConfig
@@ -156,17 +159,14 @@ func (dsi *DashboardsIdler) List(ctx context.Context) (*IdleDashboardsResult, er
 		return nil, fmt.Errorf("read header: %w", err)
 	}
 
-	var idleDashboards []struct {
-		Board    Board
-		Missings map[MetricName]struct{}
-	}
+	var idles []IdleDashboard
 OUT:
 	for {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		default:
-			if dsi.isOffLimit(len(idleDashboards)) {
+			if dsi.isOffLimit(len(idles)) {
 				break OUT
 			}
 			board, err := r.Read()
@@ -176,39 +176,13 @@ OUT:
 			if err != nil {
 				return nil, fmt.Errorf("read dashboard: %w", err)
 			}
-
-			var panels []*Panel
-			if err := json.Unmarshal([]byte(board[2]), &panels); err != nil {
-				return nil, fmt.Errorf("unmarshal panel: %w", err)
+			missings, se, err := dsi.scanDashboard(board, rules, metrics)
+			if err != nil {
+				return nil, fmt.Errorf("scan dashboard: %w", err)
 			}
-
-			missings := make(map[MetricName]struct{})
-			for _, panel := range panels {
-				for _, target := range panel.Targets {
-					if target.Expr == "" {
-						continue
-					}
-					ms, err := parsePromQuery(target.Expr)
-					if err != nil {
-						silentErrs = append(silentErrs, fmt.Errorf("parse expr: %w", err))
-						continue
-					}
-					for _, m := range ms {
-						if _, ok := rules[RuleName(m)]; ok {
-							continue
-						}
-						if _, ok := metrics[m]; ok {
-							continue
-						}
-						missings[m] = struct{}{}
-					}
-				}
-			}
+			silentErrs = append(silentErrs, se...)
 			if len(missings) > 0 {
-				idleDashboards = append(idleDashboards, struct {
-					Board    Board
-					Missings map[MetricName]struct{}
-				}{
+				idles = append(idles, IdleDashboard{
 					Board: Board{
 						UID:   board[0],
 						Title: board[1],
@@ -219,9 +193,45 @@ OUT:
 		}
 	}
 	return &IdleDashboardsResult{
-		IdleDashboards: idleDashboards,
+		IdleDashboards: idles,
 		ParseErrs:      silentErrs,
 	}, nil
+}
+
+func (dsi *DashboardsIdler) scanDashboard(
+	board []string,
+	rules map[RuleName]struct{},
+	metrics map[MetricName]struct{},
+) (map[MetricName]struct{}, []error, error) {
+	var panels []*Panel
+	if err := json.Unmarshal([]byte(board[2]), &panels); err != nil {
+		return nil, nil, fmt.Errorf("unmarshal panel: %w", err)
+	}
+
+	var silentErrs []error
+	missings := make(map[MetricName]struct{})
+	for _, panel := range panels {
+		for _, target := range panel.Targets {
+			if target.Expr == "" {
+				continue
+			}
+			ms, err := parsePromQuery(target.Expr)
+			if err != nil {
+				silentErrs = append(silentErrs, fmt.Errorf("parse expr: %w", err))
+				continue
+			}
+			for _, m := range ms {
+				if _, ok := rules[RuleName(m)]; ok {
+					continue
+				}
+				if _, ok := metrics[m]; ok {
+					continue
+				}
+				missings[m] = struct{}{}
+			}
+		}
+	}
+	return missings, silentErrs, nil
 }
 
 func (dsi *DashboardsIdler) isOffLimit(n int) bool {
