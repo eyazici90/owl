@@ -86,18 +86,18 @@ OUT:
 		}
 	}
 
-	usage := make([]MetricUsageInBoard, 0, len(metrics))
+	usages := make([]MetricUsageInBoard, 0, len(metrics))
 	for m, u := range metrics {
-		usage = append(usage, MetricUsageInBoard{
+		usages = append(usages, MetricUsageInBoard{
 			Metric: m,
 			Used:   u,
 		})
 	}
-	sort.Slice(usage, func(i, j int) bool {
-		return usage[i].Used > usage[j].Used
+	sort.Slice(usages, func(i, j int) bool {
+		return usages[i].Used > usages[j].Used
 	})
 	return &TopUsedResult{
-		Usages:    usage[:tl.cfg.Limit],
+		Usages:    usages[:tl.cfg.Limit],
 		ParseErrs: silentErrs,
 	}, nil
 }

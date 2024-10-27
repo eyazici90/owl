@@ -46,14 +46,14 @@ func (pri *PromRulesIdler) List(ctx context.Context) ([]RuleMissingMetrics, erro
 		return nil, fmt.Errorf("read header: %w", err)
 	}
 
-	var result []RuleMissingMetrics
+	var results []RuleMissingMetrics
 EXIT:
 	for {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		default:
-			if pri.isOffLimit(len(result)) {
+			if pri.isOffLimit(len(results)) {
 				break EXIT
 			}
 			rec, err := rr.Read()
@@ -77,13 +77,13 @@ EXIT:
 			if !found {
 				continue
 			}
-			result = append(result, RuleMissingMetrics{
+			results = append(results, RuleMissingMetrics{
 				Rule:    rule,
 				Metrics: missing,
 			})
 		}
 	}
-	return result, nil
+	return results, nil
 }
 
 func (pri *PromRulesIdler) isOffLimit(n int) bool {
