@@ -26,6 +26,10 @@ var metricsCmd = &cli.Command{
 					Value: "https://demo.promlabs.com/",
 					// Required: true,
 				},
+				&cli.StringFlag{
+					Name:  "since",
+					Value: "720h",
+				},
 			},
 		},
 	},
@@ -33,7 +37,7 @@ var metricsCmd = &cli.Command{
 
 func actionMetricsExport(c *cli.Context) error {
 	cfg := actionSetup(c)
-	exp, err := internal.NewMetricsExporter(cfg.ExportConfig)
+	exp, err := internal.NewMetricsExporter(cfg.MetricsExporterConfig)
 	if err != nil {
 		return fmt.Errorf("new prom analyser: %w", err)
 	}

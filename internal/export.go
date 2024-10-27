@@ -36,12 +36,17 @@ func (re *RulesExporter) Export(ctx context.Context) error {
 	return writeAllRulesCSV(ctx, re.cfg.Output, rules)
 }
 
+type MetricsExporterConfig struct {
+	*ExportConfig
+	Since string
+}
+
 type MetricsExporter struct {
-	cfg   *ExportConfig
+	cfg   *MetricsExporterConfig
 	v1api promapiv1.API
 }
 
-func NewMetricsExporter(cfg *ExportConfig) (*MetricsExporter, error) {
+func NewMetricsExporter(cfg *MetricsExporterConfig) (*MetricsExporter, error) {
 	return &MetricsExporter{
 		cfg:   cfg,
 		v1api: mustNewPromAPIV1(cfg.Addr),
@@ -49,8 +54,13 @@ func NewMetricsExporter(cfg *ExportConfig) (*MetricsExporter, error) {
 }
 
 func (mex *MetricsExporter) Export(ctx context.Context) error {
-	var t time.Time
-	metrics, _, err := mex.v1api.LabelValues(ctx, labels.MetricName, nil, t, t)
+	since, err := time.ParseDuration(mex.cfg.Since)
+	if err != nil {
+		return fmt.Errorf("parse dur: %w", err)
+	}
+
+	start, end := time.Now().Add(-1*since), time.Now()
+	metrics, _, err := mex.v1api.LabelValues(ctx, labels.MetricName, nil, start, end)
 	if err != nil {
 		return fmt.Errorf("get metrics: %w", err)
 	}
