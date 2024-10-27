@@ -11,6 +11,8 @@ import (
 	promapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 )
 
+type RuleName string
+
 type Rule struct {
 	Group, Type, Name, Query, Labels string
 	EvalDuration                     float64
@@ -113,4 +115,12 @@ OUT:
 		}
 	}
 	return rules, silentErrs, nil
+}
+
+func distinctRuleNames(rules []Rule) map[RuleName]struct{} {
+	m := make(map[RuleName]struct{}, len(rules))
+	for _, rule := range rules {
+		m[RuleName(rule.Name)] = struct{}{}
+	}
+	return m
 }
