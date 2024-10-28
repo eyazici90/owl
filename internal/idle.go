@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -231,6 +232,122 @@ func (dsi *DashboardsIdler) scanDashboard(
 
 func (dsi *DashboardsIdler) isOffLimit(n int) bool {
 	return uint64(n) >= dsi.cfg.Limit
+}
+
+type IdleMetricsResult struct {
+	IdleMetrics []MetricName
+	ParseErrs   []error
+}
+
+type MetricsIdler struct {
+	cfg *IdlerConfig
+}
+
+func NewMetricsIdler(cfg *IdlerConfig) *MetricsIdler {
+	return &MetricsIdler{
+		cfg: cfg,
+	}
+}
+
+func (mi *MetricsIdler) List(ctx context.Context) (*IdleMetricsResult, error) {
+	var (
+		metrics map[MetricName]struct{}
+		rules   []Rule
+		boards  []*Board
+
+		mu         sync.RWMutex
+		silentErrs []error
+	)
+	eg, egctx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		res, se, err := readAllBoardsCSV(egctx, mi.cfg.DashboardsFile)
+		if err != nil {
+			return err
+		}
+		boards = res
+		mu.Lock()
+		silentErrs = se
+		mu.Unlock()
+		return nil
+	})
+	eg.Go(func() error {
+		res, se, err := readAllRulesCSV(egctx, mi.cfg.RulesFile)
+		if err != nil {
+			return err
+		}
+		rules = res
+		mu.Lock()
+		silentErrs = se
+		mu.Unlock()
+		return nil
+	})
+	eg.Go(func() error {
+		res, err := readAllMetricsCSV(egctx, mi.cfg.MetricsFile)
+		if err != nil {
+			return err
+		}
+		metrics = res
+		return nil
+	})
+	if err := eg.Wait(); err != nil {
+		return nil, fmt.Errorf("wait eg: %w", err)
+	}
+
+	used, se := mi.usedMetricsFrom(boards, rules)
+	if len(se) > 0 {
+		silentErrs = append(silentErrs, se...)
+	}
+
+	var idles []MetricName
+	for m, _ := range metrics {
+		if mi.isOffLimit(len(idles)) {
+			break
+		}
+		if _, ok := used[m]; !ok {
+			idles = append(idles, m)
+		}
+	}
+	return &IdleMetricsResult{
+		IdleMetrics: idles,
+		ParseErrs:   silentErrs,
+	}, nil
+}
+
+func (mi *MetricsIdler) usedMetricsFrom(boards []*Board, rules []Rule) (map[MetricName]struct{}, []error) {
+	metrics := make(map[MetricName]struct{})
+	var silentErrs []error
+	for _, rule := range rules {
+		ms, err := parsePromQuery(rule.Query)
+		if err != nil {
+			silentErrs = append(silentErrs, fmt.Errorf("parse expr: %w", err))
+			continue
+		}
+		for _, m := range ms {
+			metrics[m] = struct{}{}
+		}
+	}
+	for _, board := range boards {
+		for _, panel := range board.Panels {
+			for _, target := range panel.Targets {
+				if target.Expr == "" {
+					continue
+				}
+				ms, err := parsePromQuery(target.Expr)
+				if err != nil {
+					silentErrs = append(silentErrs, fmt.Errorf("parse expr: %w", err))
+					continue
+				}
+				for _, m := range ms {
+					metrics[m] = struct{}{}
+				}
+			}
+		}
+	}
+	return metrics, silentErrs
+}
+
+func (mi *MetricsIdler) isOffLimit(n int) bool {
+	return uint64(n) >= mi.cfg.Limit
 }
 
 func missingValues[T comparable](search map[T]struct{}, vals ...T) ([]T, bool) {
