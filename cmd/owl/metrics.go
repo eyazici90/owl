@@ -22,9 +22,8 @@ var metricsCmd = &cli.Command{
 					Value:   "metrics.csv",
 				},
 				&cli.StringFlag{
-					Name:  "addr",
-					Value: "https://demo.promlabs.com/",
-					// Required: true,
+					Name:     "addr",
+					Required: true,
 				},
 				&cli.StringFlag{
 					Name:  "since",

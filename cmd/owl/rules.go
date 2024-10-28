@@ -22,9 +22,8 @@ var rulesCmd = &cli.Command{
 					Value:   "rules.csv",
 				},
 				&cli.StringFlag{
-					Name:  "addr",
-					Value: "https://demo.promlabs.com/",
-					// Required: true,
+					Name:     "addr",
+					Required: true,
 				},
 			},
 		},

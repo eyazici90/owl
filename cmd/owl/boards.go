@@ -22,9 +22,8 @@ var dashboardsCmd = &cli.Command{
 					Value:   "dashboards.csv",
 				},
 				&cli.StringFlag{
-					Name:  "addr",
-					Value: "play.grafana.org",
-					// Required: true,
+					Name:     "addr",
+					Required: true,
 				},
 				&cli.StringFlag{
 					Name:     "svc-token",
