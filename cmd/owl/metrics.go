@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/eyazici90/obsctl/internal"
+	"github.com/eyazici90/owl/internal"
 	"github.com/urfave/cli/v2"
 )
 

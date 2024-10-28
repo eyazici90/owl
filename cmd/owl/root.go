@@ -3,12 +3,12 @@ package main
 import (
 	"os"
 
-	"github.com/eyazici90/obsctl/internal"
+	"github.com/eyazici90/owl/internal"
 	"github.com/urfave/cli/v2"
 )
 
 var root = &cli.App{
-	Name:        "obsctl",
+	Name:        "owl",
 	Version:     "v0.0.1",
 	Description: "Observability CLI",
 	Commands: []*cli.Command{

@@ -6,7 +6,7 @@
 *.dylib
 .idea
 .vscode
-
+*.csv
 # Test binary, built with `go test -c`
 *.test
 

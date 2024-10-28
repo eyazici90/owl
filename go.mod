@@ -1,4 +1,4 @@
-module github.com/eyazici90/obsctl
+module github.com/eyazici90/owl
 
 go 1.23.2
 
