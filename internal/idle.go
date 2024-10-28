@@ -12,8 +12,8 @@ import (
 )
 
 type IdlerConfig struct {
-	RulesFile, MetricsFile string
-	Limit                  uint64
+	RulesFile, MetricsFile, DashboardsFile string
+	Limit                                  uint64
 }
 
 type RuleMissingMetrics struct {
@@ -32,7 +32,7 @@ func NewPromRulesIdler(cfg *IdlerConfig) *PromRulesIdler {
 }
 
 func (pri *PromRulesIdler) List(ctx context.Context) ([]RuleMissingMetrics, error) {
-	metrics, err := realAllMetricsCSV(ctx, pri.cfg.MetricsFile)
+	metrics, err := readAllMetricsCSV(ctx, pri.cfg.MetricsFile)
 	if err != nil {
 		return nil, err
 	}
@@ -104,16 +104,11 @@ type (
 	}
 )
 
-type DashboardsIdlerConfig struct {
-	*IdlerConfig
-	DashboardsFile string
-}
-
 type DashboardsIdler struct {
-	cfg *DashboardsIdlerConfig
+	cfg *IdlerConfig
 }
 
-func NewDashboardsIdler(cfg *DashboardsIdlerConfig) *DashboardsIdler {
+func NewDashboardsIdler(cfg *IdlerConfig) *DashboardsIdler {
 	return &DashboardsIdler{
 		cfg: cfg,
 	}
@@ -127,7 +122,7 @@ func (dsi *DashboardsIdler) List(ctx context.Context) (*IdleDashboardsResult, er
 	)
 	eg, egctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
-		res, err := realAllMetricsCSV(egctx, dsi.cfg.MetricsFile)
+		res, err := readAllMetricsCSV(egctx, dsi.cfg.MetricsFile)
 		if err != nil {
 			return err
 		}
@@ -135,7 +130,7 @@ func (dsi *DashboardsIdler) List(ctx context.Context) (*IdleDashboardsResult, er
 		return nil
 	})
 	eg.Go(func() error {
-		res, se, err := realAllRulesCSV(egctx, dsi.cfg.RulesFile)
+		res, se, err := readAllRulesCSV(egctx, dsi.cfg.RulesFile)
 		if err != nil {
 			return err
 		}

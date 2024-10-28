@@ -68,7 +68,7 @@ func writeAllRulesCSV(ctx context.Context, file string, rules promapiv1.RulesRes
 	return nil
 }
 
-func realAllRulesCSV(ctx context.Context, file string) ([]Rule, []error, error) {
+func readAllRulesCSV(ctx context.Context, file string) ([]Rule, []error, error) {
 	f, err := os.Open(file)
 	if err != nil {
 		return nil, nil, fmt.Errorf("open rules: %w", err)

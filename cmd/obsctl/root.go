@@ -29,7 +29,6 @@ type Config struct {
 	*internal.MetricsExporterConfig
 	*internal.DashboardsExportConfig
 	*internal.IdlerConfig
-	*internal.DashboardsIdlerConfig
 	*internal.SlowestConfig
 	*internal.TopListerConfig
 }
@@ -51,11 +50,6 @@ func actionSetup(c *cli.Context) *Config {
 		Addr:   addr,
 		Output: out,
 	}
-	idle := &internal.IdlerConfig{
-		RulesFile:   rfile,
-		MetricsFile: mfile,
-		Limit:       limit,
-	}
 	return &Config{
 		ExportConfig: expr,
 		MetricsExporterConfig: &internal.MetricsExporterConfig{
@@ -66,10 +60,11 @@ func actionSetup(c *cli.Context) *Config {
 			ExportConfig: expr,
 			SvcToken:     token,
 		},
-		IdlerConfig: idle,
-		DashboardsIdlerConfig: &internal.DashboardsIdlerConfig{
-			IdlerConfig:    idle,
+		IdlerConfig: &internal.IdlerConfig{
+			RulesFile:      rfile,
+			MetricsFile:    mfile,
 			DashboardsFile: dfile,
+			Limit:          limit,
 		},
 		SlowestConfig: &internal.SlowestConfig{
 			RulesFile: rfile,

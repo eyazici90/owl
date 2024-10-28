@@ -86,14 +86,14 @@ func actionRulesIdle(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("list idle rules: %w", err)
 	}
-	slog.Info("Found",
-		slog.Int("total", len(res)),
-	)
 	for _, rule := range res {
 		slog.Info("Found",
 			slog.String("item", fmt.Sprintf("%+v", rule)),
 		)
 	}
+	slog.Info("Found",
+		slog.Int("total", len(res)),
+	)
 	return nil
 }
 
@@ -104,10 +104,6 @@ func actionRulesSlowest(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("get slowest: %w", err)
 	}
-	slog.Info("Found",
-		slog.Int("total", len(res.Rules)),
-		slog.Int("err-count", len(res.ParseErrs)),
-	)
 	for _, pe := range res.ParseErrs {
 		slog.Debug("Error", slog.Any("msg", pe))
 	}
@@ -116,5 +112,9 @@ func actionRulesSlowest(c *cli.Context) error {
 			slog.String("item", fmt.Sprintf("%+v", slow)),
 		)
 	}
+	slog.Info("Found",
+		slog.Int("total", len(res.Rules)),
+		slog.Int("err-count", len(res.ParseErrs)),
+	)
 	return nil
 }

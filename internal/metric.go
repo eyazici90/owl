@@ -48,7 +48,7 @@ func writeAllMetricsCSV(ctx context.Context, file string, metrics model.LabelVal
 	return nil
 }
 
-func realAllMetricsCSV(ctx context.Context, file string) (map[MetricName]struct{}, error) {
+func readAllMetricsCSV(ctx context.Context, file string) (map[MetricName]struct{}, error) {
 	mf, err := os.Open(file)
 	if err != nil {
 		return nil, fmt.Errorf("open metrics: %w", err)

@@ -93,10 +93,6 @@ func actionDashboardsTopUsed(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("list top: %w", err)
 	}
-	slog.Info("Found",
-		slog.Int("total", len(res.Usages)),
-		slog.Int("err-count", len(res.ParseErrs)),
-	)
 	for _, pe := range res.ParseErrs {
 		slog.Debug("Error", slog.Any("msg", pe))
 	}
@@ -105,20 +101,20 @@ func actionDashboardsTopUsed(c *cli.Context) error {
 			slog.String("item", fmt.Sprintf("%+v", usage)),
 		)
 	}
+	slog.Info("Found",
+		slog.Int("total", len(res.Usages)),
+		slog.Int("err-count", len(res.ParseErrs)),
+	)
 	return nil
 }
 
 func actionDashboardsIdle(c *cli.Context) error {
 	cfg := actionSetup(c)
-	dsi := internal.NewDashboardsIdler(cfg.DashboardsIdlerConfig)
+	dsi := internal.NewDashboardsIdler(cfg.IdlerConfig)
 	res, err := dsi.List(c.Context)
 	if err != nil {
 		return fmt.Errorf("list idle dashboards: %w", err)
 	}
-	slog.Info("Found",
-		slog.Int("total", len(res.IdleDashboards)),
-		slog.Int("err-count", len(res.ParseErrs)),
-	)
 	for _, pe := range res.ParseErrs {
 		slog.Debug("Error", slog.Any("msg", pe))
 	}
@@ -127,5 +123,9 @@ func actionDashboardsIdle(c *cli.Context) error {
 			slog.String("item", fmt.Sprintf("%+v", ds)),
 		)
 	}
+	slog.Info("Found",
+		slog.Int("total", len(res.IdleDashboards)),
+		slog.Int("err-count", len(res.ParseErrs)),
+	)
 	return nil
 }

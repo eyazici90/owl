@@ -31,7 +31,7 @@ func NewPromRulesSlowest(cfg *SlowestConfig) *PromRulesSlowest {
 }
 
 func (prs *PromRulesSlowest) Get(ctx context.Context) (*SlowestRulesResult, error) {
-	rules, silentErrs, err := realAllRulesCSV(ctx, prs.cfg.RulesFile)
+	rules, silentErrs, err := readAllRulesCSV(ctx, prs.cfg.RulesFile)
 	if err != nil {
 		return nil, err
 	}
