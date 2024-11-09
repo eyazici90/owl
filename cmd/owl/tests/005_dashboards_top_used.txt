@@ -1,0 +1,8 @@
+! exec owl dashboards top-used --limit=1
+! stdout .
+
+cmp stderr stderr.txt
+
+-- stderr.txt --
+time=2024-11-09T22:25:08.265+01:00 level=INFO msg=Usage item="{Metric:slo:current_burn_rate:ratio Used:12}"
+time=2024-11-09T22:25:08.265+01:00 level=INFO msg=Found total=1 err-count=0

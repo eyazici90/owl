@@ -1,0 +1,7 @@
+! exec owl metrics idle --limit=1
+! stdout .
+cmp stderr stderr.txt
+
+-- stderr.txt --
+time=2024-11-09T22:02:09.340+01:00 level=INFO msg=Found item=cpu_limit
+time=2024-11-09T22:02:09.341+01:00 level=INFO msg=Found total=1 err-count=0

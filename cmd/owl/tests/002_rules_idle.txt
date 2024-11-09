@@ -1,0 +1,8 @@
+! exec owl rules idle --limit=1
+! stdout .
+
+cmp stderr stderr.txt
+
+-- stderr.txt --
+time=2024-11-09T22:19:52.751+01:00 level=INFO msg=Found item="{Rule:{Group:Test Type:alert Name:cpu_exceed Query:histogram_quantile(0.95, sum(rate(cpu_limit{env=\"test\"}[5m]))}[5m]))> 2 Labels: EvalDuration:0} Metrics:[cpu_limit]}"
+time=2024-11-09T22:19:52.751+01:00 level=INFO msg=Found total=1

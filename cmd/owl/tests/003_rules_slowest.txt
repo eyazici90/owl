@@ -1,0 +1,2 @@
+! exec owl rules slowest --limit=1
+! stdout .

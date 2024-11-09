@@ -1,0 +1,8 @@
+! exec owl dashboards idle --limit=1
+! stdout .
+
+cmp stderr stderr.txt
+
+-- stderr.txt --
+time=2024-11-09T22:23:43.049+01:00 level=INFO msg=Found item="{Board:{ID:0 UID:eq7P7CY7k Title:API Logs Tags:[] Panels:[]} Missings:map[kafka_minion_group_topic_partition_offset:{} kafka_minion_topic_partition_high_water_mark:{}]}"
+time=2024-11-09T22:23:43.049+01:00 level=INFO msg=Found total=1 err-count=0
