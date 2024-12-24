@@ -78,10 +78,17 @@ func actionDashboardsExport(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("dashboard exporter: %w", err)
 	}
-	if err = exp.Export(c.Context); err != nil {
+	res, err := exp.Export(c.Context)
+	if err != nil {
 		return fmt.Errorf("export: %w", err)
 	}
-	slog.Info("Dashboards export finished!")
+	for _, pe := range res.ParseErrs {
+		slog.Debug("Error", slog.Any("msg", pe))
+	}
+	slog.Info("Finished",
+		slog.Int("total", res.Total),
+		slog.Int("err-count", len(res.ParseErrs)),
+	)
 	return nil
 }
 

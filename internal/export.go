@@ -16,6 +16,11 @@ type ExportConfig struct {
 	Output string
 }
 
+type ExportResult struct {
+	Total     int
+	ParseErrs []error
+}
+
 type RulesExporter struct {
 	cfg   *ExportConfig
 	v1api promapiv1.API
@@ -88,22 +93,26 @@ func NewDashboardsExporter(cfg *DashboardsExportConfig) (*DashboardsExporter, er
 	}, nil
 }
 
-func (dex *DashboardsExporter) Export(ctx context.Context) error {
+func (dex *DashboardsExporter) Export(ctx context.Context) (*ExportResult, error) {
 	boardIDs, err := getAllDashboards(ctx, dex.grafana)
 	if err != nil {
-		return fmt.Errorf("get all dashboards: %w", err)
+		return nil, fmt.Errorf("get all dashboards: %w", err)
 	}
 
 	c := len(boardIDs)
-	slog.Info("Found dashboards", slog.Int("count", c))
 	boards := make([]*Board, 0, c)
+	var silentErrs []error
 	for _, uid := range boardIDs {
 		slog.Debug("Fetching board", slog.String("uid", uid))
 		db, err := getDashboardByUID(ctx, dex.grafana, uid)
 		if err != nil {
-			return fmt.Errorf("get board: %w", err)
+			silentErrs = append(silentErrs, fmt.Errorf("get board: %w", err))
+			continue
 		}
 		boards = append(boards, db)
 	}
-	return writeAllBoardsCSV(ctx, dex.cfg.Output, boards)
+	return &ExportResult{
+		Total:     len(boardIDs),
+		ParseErrs: silentErrs,
+	}, writeAllBoardsCSV(ctx, dex.cfg.Output, boards)
 }

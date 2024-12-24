@@ -26,15 +26,11 @@ type (
 		Targets []Target  `mapstructure:"targets,omitempty"`
 	}
 	Target struct {
-		Expr string `mapstructure:"expr,omitempty"`
+		Datasource any    `mapstructure:"datasource,omitempty"`
+		Expr       string `mapstructure:"expr,omitempty"`
 	}
 	panelType int8
 )
-
-type Datasource struct {
-	Type string `mapstructure:"type"`
-	UID  string `mapstructure:"UID"`
-}
 
 func writeAllBoardsCSV(ctx context.Context, file string, boards []*Board) error {
 	f, err := os.Create(file)
