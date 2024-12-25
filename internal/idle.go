@@ -172,7 +172,7 @@ OUT:
 			if err != nil {
 				return nil, fmt.Errorf("read dashboard: %w", err)
 			}
-			missings, se, err := dsi.scanDashboard(board, rules, metrics)
+			missings, se, err := dsi.scanDashboard(board[colBoardPanels], rules, metrics)
 			if err != nil {
 				return nil, fmt.Errorf("scan dashboard: %w", err)
 			}
@@ -180,8 +180,8 @@ OUT:
 			if len(missings) > 0 {
 				idles = append(idles, IdleDashboard{
 					Board: Board{
-						UID:   board[0],
-						Title: board[1],
+						UID:   board[colBoardUID],
+						Title: board[colBoardTitle],
 					},
 					Missings: missings,
 				})
@@ -195,12 +195,12 @@ OUT:
 }
 
 func (dsi *DashboardsIdler) scanDashboard(
-	board []string,
+	jsn string,
 	rules map[RuleName]struct{},
 	metrics map[MetricName]struct{},
 ) (map[MetricName]struct{}, []error, error) {
 	var panels []*Panel
-	if err := json.Unmarshal([]byte(board[2]), &panels); err != nil {
+	if err := json.Unmarshal([]byte(jsn), &panels); err != nil {
 		return nil, nil, fmt.Errorf("unmarshal panel: %w", err)
 	}
 

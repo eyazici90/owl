@@ -65,7 +65,7 @@ OUT:
 			}
 
 			var panels []*Panel
-			if err := json.Unmarshal([]byte(board[2]), &panels); err != nil {
+			if err := json.Unmarshal([]byte(board[colBoardPanels]), &panels); err != nil {
 				return nil, fmt.Errorf("unmarshal panel: %w", err)
 			}
 			for _, panel := range panels {
