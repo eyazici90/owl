@@ -98,8 +98,11 @@ func (dex *DashboardsExporter) Export(ctx context.Context) (*ExportResult, error
 	if err != nil {
 		return nil, fmt.Errorf("get all dashboards: %w", err)
 	}
-
 	c := len(boardIDs)
+	slog.InfoContext(ctx, "Fetched dashboards",
+		slog.Int("total", c),
+	)
+
 	boards := make([]*Board, 0, c)
 	var silentErrs []error
 	for _, uid := range boardIDs {
