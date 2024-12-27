@@ -50,10 +50,10 @@ func writeAllBoardsCSV(ctx context.Context, file string, boards []*Board) error 
 		_ = f.Close()
 	}()
 
-	const batchSize, numCol = 100, colBoardNum
+	const batchSize = 100
 	wr := &csvBatchWriter{
 		size: batchSize,
-		buf:  make([]string, numCol),
+		buf:  make([]string, colBoardNum),
 		w:    csv.NewWriter(f),
 	}
 	err = wr.Write(ctx, func(buf []string) {

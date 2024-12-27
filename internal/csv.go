@@ -19,7 +19,7 @@ func (wr *csvBatchWriter) Write(ctx context.Context, fn func(buf []string)) erro
 		return ctx.Err()
 	default:
 		if wr.c >= wr.size {
-			wr.w.Flush()
+			wr.Flush()
 			if err := wr.w.Error(); err != nil {
 				return fmt.Errorf("flush csv: %w", err)
 			}

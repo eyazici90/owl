@@ -11,6 +11,19 @@ import (
 	promapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 )
 
+type colRule uint8
+
+const (
+	colRuleGroup colRule = iota
+	colRuleType
+	colRuleName
+	colRuleQuery
+	colRuleLabels
+	colRuleEvalTime
+	colRuleLastEval
+	colRuleNum
+)
+
 type RuleName string
 
 type Rule struct {
@@ -27,14 +40,14 @@ func writeAllRulesCSV(ctx context.Context, file string, rules promapiv1.RulesRes
 		_ = f.Close()
 	}()
 
-	const batchSize, numCol = 100, 7
+	const batchSize = 100
 	wr := &csvBatchWriter{
 		size: batchSize,
-		buf:  make([]string, numCol),
+		buf:  make([]string, colRuleNum),
 		w:    csv.NewWriter(f),
 	}
 	err = wr.Write(ctx, func(buf []string) {
-		buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6] = "group", "type", "name", "query", "labels", "evalTime", "lastEval"
+		buf[colRuleGroup], buf[colRuleType], buf[colRuleName], buf[colRuleQuery], buf[colRuleLabels], buf[colRuleEvalTime], buf[colRuleLastEval] = "group", "type", "name", "query", "labels", "evalTime", "lastEval"
 	})
 	if err != nil {
 		return fmt.Errorf("write headers: %w", err)
@@ -105,11 +118,11 @@ OUT:
 				return nil, nil, fmt.Errorf("parse eval-duration: %w", err)
 			}
 			rules = append(rules, Rule{
-				Group:        rec[0],
-				Type:         rec[1],
-				Name:         rec[2],
-				Query:        rec[3],
-				Labels:       rec[4],
+				Group:        rec[colRuleGroup],
+				Type:         rec[colRuleType],
+				Name:         rec[colRuleName],
+				Query:        rec[colRuleQuery],
+				Labels:       rec[colRuleLabels],
 				EvalDuration: dur,
 			})
 		}
