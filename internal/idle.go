@@ -68,10 +68,10 @@ EXIT:
 				return nil, fmt.Errorf("read rule: %w", err)
 			}
 			rule := Rule{
-				Group: rec[0],
-				Type:  rec[1],
-				Name:  rec[2],
-				Query: rec[3],
+				Group: rec[colRuleGroup],
+				Type:  rec[colRuleType],
+				Name:  rec[colRuleName],
+				Query: rec[colRuleQuery],
 			}
 			ms, err := parsePromQuery(rule.Query)
 			if err != nil {
